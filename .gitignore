@@ -8,11 +8,14 @@ config/.env
 
 # Cloudflare Tunnel Files (contains credentials)
 *.pem
-*.json
-tunnel.json
 cert.pem
 cloudflared.exe
 scripts/cloudflared.exe
+
+# Specific JSON files that contain credentials (not workflow files)
+tunnel.json
+**/credentials.json
+**/secrets.json
 
 # System-specific Files
 .DS_Store
