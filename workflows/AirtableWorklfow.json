@@ -1,0 +1,826 @@
+{
+  "name": "Content-to-Twitter Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-webhook",
+        "authentication": "headerAuth",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-start",
+      "name": "Content Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1400,
+        200
+      ],
+      "webhookId": "content-webhook-id",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook_auth",
+          "name": "X-Secret-Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the incoming raw content blob\nconst rawContent = $input.first().json.body || $input.first().binary?.data?.toString() || '';\n\nif (!rawContent) {\n  throw new Error('No content received in webhook');\n}\n\n// Split content into lines for processing\nconst lines = rawContent.split('\\n').filter(line => line.trim());\n\nif (lines.length === 0) {\n  throw new Error('Empty content received');\n}\n\n// Extract components\nlet mainHeading = '';\nlet subheadings = [];\nlet bodyLines = [];\nlet mediaUrls = [];\n\n// Process each line\nfor (let i = 0; i < lines.length; i++) {\n  const line = lines[i].trim();\n  \n  if (i === 0 && !line.startsWith('#')) {\n    // First line is main heading if not already marked\n    mainHeading = line;\n  } else if (line.startsWith('# ')) {\n    // Main heading with markdown\n    mainHeading = line.substring(2).trim();\n  } else if (line.startsWith('## ')) {\n    // Subheading\n    subheadings.push(line.substring(3).trim());\n  } else if (line.match(/^https?:\\/\\/.*\\.(jpg|jpeg|png|gif|mp4|mov|webm|pdf)$/i)) {\n    // Media URL\n    mediaUrls.push(line);\n  } else if (line.match(/^https?:\\/\\//) && line.includes('image') || line.includes('video') || line.includes('media')) {\n    // Other media URLs\n    mediaUrls.push(line);\n  } else if (line.length > 0 && !line.match(/^https?:\\/\\//)) {\n    // Body content (exclude standalone URLs)\n    bodyLines.push(line);\n  }\n}\n\n// Generate page name from main heading\nconst pageName = mainHeading ? \n  mainHeading.toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, '')\n    .replace(/\\s+/g, '-')\n    .substring(0, 50) : \n  `content-${Date.now()}`;\n\nconst body = bodyLines.join('\\n\\n');\n\n// Validate we have some content\nif (!mainHeading && !body) {\n  throw new Error('No meaningful content found in the input');\n}\n\nreturn {\n  pageName,\n  mainHeading: mainHeading || 'Untitled',\n  subheadings,\n  body,\n  mediaUrls,\n  rawContent,\n  processedAt: new Date().toISOString()\n};"
+      },
+      "id": "parse-content",
+      "name": "Parse Content Blob",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ $vars.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Pages"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Page Name": "={{ $json.pageName }}",
+            "Heading": "={{ $json.mainHeading }}",
+            "Subheadings": "={{ $json.subheadings.join('\\n') }}",
+            "Content": "={{ $json.body }}",
+            "Media": "={{ $json.mediaUrls.length > 0 ? $json.mediaUrls.map(url => ({url: url})) : [] }}",
+            "Status": "Processing",
+            "Created": "={{ $json.processedAt }}",
+            "Content Type": "single"
+          }
+        },
+        "options": {}
+      },
+      "id": "create-airtable-record",
+      "name": "Create Airtable Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        200
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable_credentials",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-r1",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a content optimization expert. Your task is to refine and perfect content for social media engagement.\n\nGiven content with heading, subheadings, and body text, you should:\n1. Refine tone and grammar for maximum engagement\n2. Make it more compelling and shareable\n3. Generate relevant hashtags (3-5 max)\n4. Create a concise summary perfect for social media\n\nReturn your response as a JSON object with these exact fields:\n{\n  \"refinedContent\": \"string - the improved content with better flow and engagement\",\n  \"summary\": \"string - 2-3 sentences summarizing key points for social media\",\n  \"hashtags\": \"string - relevant hashtags separated by spaces (3-5 max)\"\n}"
+            },
+            {
+              "role": "user",
+              "content": "Please refine this content for maximum social media engagement:\n\nHeading: {{ $('Parse Content Blob').item.json.mainHeading }}\n\nSubheadings: {{ $('Parse Content Blob').item.json.subheadings.join(', ') }}\n\nContent: {{ $('Parse Content Blob').item.json.body }}\n\nMedia URLs: {{ $('Parse Content Blob').item.json.mediaUrls.join(', ') }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1500
+        }
+      },
+      "id": "ai-content-refiner",
+      "name": "AI Content Refiner",
+      "type": "n8n-nodes-base.openRouter",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        200
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "openrouter_credentials",
+          "name": "OpenRouter API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and prepare for Airtable update\nconst aiResponse = $input.first().json.choices?.[0]?.message?.content || $input.first().json.response || $input.first().json.message?.content || '';\nconst recordId = $('Create Airtable Record').item.json.id;\n\nlet refinedData;\ntry {\n  // Try to parse as JSON\n  const cleanResponse = aiResponse.replace(/```json|```/g, '').trim();\n  refinedData = JSON.parse(cleanResponse);\n} catch (e) {\n  // If parsing fails, create a structured response\n  console.log('Failed to parse AI response as JSON, creating fallback structure');\n  refinedData = {\n    refinedContent: aiResponse,\n    summary: aiResponse.substring(0, 200) + '...',\n    hashtags: '#content #social #automation'\n  };\n}\n\n// Ensure all required fields exist\nrefinedData.refinedContent = refinedData.refinedContent || aiResponse;\nrefinedData.summary = refinedData.summary || 'AI-refined content ready for social media';\nrefinedData.hashtags = refinedData.hashtags || '#content #social #automation';\n\n// Clean up hashtags\nif (!refinedData.hashtags.startsWith('#')) {\n  refinedData.hashtags = '#' + refinedData.hashtags.replace(/\\s+/g, ' #');\n}\n\nreturn {\n  recordId,\n  refinedContent: refinedData.refinedContent,\n  summary: refinedData.summary,\n  hashtags: refinedData.hashtags,\n  status: 'Ready to Post'\n};"
+      },
+      "id": "process-ai-response",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ $vars.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Pages"
+        },
+        "id": "={{ $json.recordId }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Refined Content": "={{ $json.refinedContent }}",
+            "Summary": "={{ $json.summary }}",
+            "Hashtags": "={{ $json.hashtags }}",
+            "Status": "Ready to Post",
+            "AI Processed": "={{ new Date().toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-record-ai",
+      "name": "Update Record with AI Output",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        200
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable_credentials",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -300,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ $vars.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Pages"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Ready to Post')",
+          "maxRecords": 1,
+          "sort": [
+            {
+              "field": "Created",
+              "direction": "asc"
+            }
+          ]
+        }
+      },
+      "id": "airtable-trigger",
+      "name": "Check Ready to Post",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        400
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable_credentials",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "operation": "isEmpty"
+          },
+          "conditions": [
+            {
+              "id": "has_records",
+              "leftValue": "={{ $json.records }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "notEmpty",
+                "type": "array"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-has-records",
+      "name": "Has Records to Process?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        140,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract record data and prepare content for AI\nconst record = $input.first().json.records[0];\nconst fields = record.fields;\nconst recordId = record.id;\n\n// Combine all content into one blob\nconst heading = fields['Heading'] || '';\nconst subheadings = fields['Subheadings'] || '';\nconst content = fields['Refined Content'] || fields['Content'] || '';\nconst summary = fields['Summary'] || '';\nconst hashtags = fields['Hashtags'] || '';\n\n// Calculate content length to determine if threading is needed\nconst fullContent = `${heading}\\n\\n${subheadings}\\n\\n${content}`.trim();\nconst contentLength = fullContent.length;\nconst shouldThread = contentLength > 200;\n\n// Prepare media URLs\nlet mediaUrls = [];\nif (fields['Media'] && Array.isArray(fields['Media'])) {\n  mediaUrls = fields['Media'].map(media => media.url).filter(url => url);\n}\n\nreturn {\n  recordId,\n  heading,\n  subheadings,\n  content,\n  summary,\n  hashtags,\n  fullContent,\n  contentLength,\n  shouldThread,\n  mediaUrls,\n  rawFields: fields\n};"
+      },
+      "id": "prepare-tweet-content",
+      "name": "Prepare Tweet Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-r1",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a Twitter content expert. Based on the content provided, create engaging tweets.\n\nIf content is short (≤200 chars), create ONE single tweet (≤280 chars).\nIf content is longer, create a THREAD of 2-8 tweets.\n\nFor single tweets: Return just the tweet text with hooks and hashtags.\nFor threads: Return a JSON array of tweet objects with this format:\n[\n  {\"text\": \"Tweet 1 content with 1/n indicator\"},\n  {\"text\": \"Tweet 2 content with 2/n indicator\"},\n  ...\n]\n\nGuidelines:\n- Each tweet must be ≤280 characters\n- Include engagement hooks (questions, interesting facts)\n- Add relevant hashtags to the last tweet only\n- For threads, include thread indicators (1/n, 2/n, etc.)\n- Make it conversational and valuable\n- Use emojis sparingly but effectively"
+            },
+            {
+              "role": "user",
+              "content": "Content Length: {{ $json.contentLength }} characters\nShould Thread: {{ $json.shouldThread }}\n\nHeading: {{ $json.heading }}\nSummary: {{ $json.summary }}\nContent: {{ $json.fullContent }}\nHashtags: {{ $json.hashtags }}\n\nCreate {{ $json.shouldThread ? 'a thread' : 'a single tweet' }} from this content."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 1200
+        }
+      },
+      "id": "ai-tweet-generator",
+      "name": "AI Tweet Generator",
+      "type": "n8n-nodes-base.openRouter",
+      "typeVersion": 1,
+      "position": [
+        580,
+        320
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "openrouter_credentials",
+          "name": "OpenRouter API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "operation": "isEmpty"
+          },
+          "conditions": [
+            {
+              "id": "is_thread",
+              "leftValue": "={{ $('Prepare Tweet Content').item.json.shouldThread }}",
+              "rightValue": true,
+              "operator": {
+                "operation": "equals",
+                "type": "boolean"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "thread-or-single",
+      "name": "Thread or Single Tweet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        800,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "tweet",
+        "operation": "create",
+        "text": "={{ $('AI Tweet Generator').item.json.choices?.[0]?.message?.content || $('AI Tweet Generator').item.json.response }}",
+        "additionalFields": {
+          "mediaIds": "={{ $('Prepare Tweet Content').item.json.mediaUrls.length > 0 ? $('Prepare Tweet Content').item.json.mediaUrls : undefined }}"
+        }
+      },
+      "id": "post-single-tweet",
+      "name": "Post Single Tweet",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        220
+      ],
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "twitter_credentials",
+          "name": "Twitter OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response for thread tweets\nconst aiResponse = $('AI Tweet Generator').item.json.choices?.[0]?.message?.content || $('AI Tweet Generator').item.json.response || '';\nlet tweets = [];\n\ntry {\n  // Try to parse as JSON array\n  const cleanResponse = aiResponse.replace(/```json|```/g, '').trim();\n  const parsed = JSON.parse(cleanResponse);\n  if (Array.isArray(parsed)) {\n    tweets = parsed;\n  } else {\n    tweets = [parsed];\n  }\n} catch (e) {\n  // If not JSON, try to extract tweets by common patterns\n  console.log('Failed to parse as JSON, extracting tweets from text');\n  const lines = aiResponse.split('\\n').filter(line => line.trim());\n  \n  tweets = lines.filter(line => {\n    // Look for numbered tweets or substantial content\n    return line.match(/^\\d+[\\/\\.]/) || \n           line.match(/Thread \\d+/) ||\n           (line.length > 30 && !line.startsWith('Here'));\n  }).map(line => ({\n    text: line.replace(/^\\d+[\\/\\.\\-]\\s*/, '').trim()\n  }));\n}\n\n// Ensure we have valid tweets\ntweets = tweets.filter(tweet => {\n  const text = typeof tweet === 'string' ? tweet : tweet.text || '';\n  return text.length > 10 && text.length <= 280;\n}).map((tweet, index) => {\n  const text = typeof tweet === 'string' ? tweet : tweet.text || '';\n  return {\n    text: text.substring(0, 280),\n    index: index,\n    isFirst: index === 0,\n    totalCount: tweets.length\n  };\n});\n\n// Fallback if no valid tweets found\nif (tweets.length === 0) {\n  const content = $('Prepare Tweet Content').item.json.summary || 'Check out this content!';\n  const hashtags = $('Prepare Tweet Content').item.json.hashtags || '';\n  tweets = [{\n    text: (content.substring(0, 250) + ' ' + hashtags).substring(0, 280),\n    index: 0,\n    isFirst: true,\n    totalCount: 1\n  }];\n}\n\nreturn tweets.map(tweet => ({ json: tweet }));"
+      },
+      "id": "parse-thread-tweets",
+      "name": "Parse Thread Tweets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "tweet",
+        "operation": "create",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "inReplyToStatusId": "={{ $json.isFirst ? undefined : $('Post Thread Tweet').last()?.json?.data?.id }}",
+          "mediaIds": "={{ $json.isFirst && $('Prepare Tweet Content').item.json.mediaUrls.length > 0 ? $('Prepare Tweet Content').item.json.mediaUrls : undefined }}"
+        }
+      },
+      "id": "post-thread-tweet",
+      "name": "Post Thread Tweet",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        420
+      ],
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "twitter_credentials",
+          "name": "Twitter OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "wait-between-tweets",
+      "name": "Wait Between Tweets",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect results from single tweet\nconst singleTweetData = $input.first().json;\nconst mainTweetId = singleTweetData.data.id;\nconst mainTweetUrl = `https://twitter.com/i/web/status/${mainTweetId}`;\n\nreturn {\n  recordId: $('Prepare Tweet Content').item.json.recordId,\n  tweetIds: [mainTweetId],\n  tweetUrls: [mainTweetUrl],\n  mainTweetId,\n  mainTweetUrl,\n  threadLength: 1,\n  postedAt: new Date().toISOString()\n};"
+      },
+      "id": "collect-single-result",
+      "name": "Collect Single Tweet Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect thread results\nconst allItems = $input.all();\nconst tweetIds = allItems.map(item => item.json.data.id);\nconst tweetUrls = tweetIds.map(id => `https://twitter.com/i/web/status/${id}`);\n\nreturn {\n  recordId: $('Prepare Tweet Content').item.json.recordId,\n  tweetIds,\n  tweetUrls,\n  mainTweetId: tweetIds[0],\n  mainTweetUrl: tweetUrls[0],\n  threadLength: tweetIds.length,\n  postedAt: new Date().toISOString()\n};"
+      },
+      "id": "collect-thread-results",
+      "name": "Collect Thread Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ $vars.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Pages"
+        },
+        "id": "={{ $json.recordId }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Posted",
+            "Tweet IDs": "={{ $json.tweetIds.join(', ') }}",
+            "Tweet URLs": "={{ $json.tweetUrls.join('\\n') }}",
+            "Main Tweet URL": "={{ $json.mainTweetUrl }}",
+            "Thread Length": "={{ $json.threadLength }}",
+            "Posted At": "={{ $json.postedAt }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-posted-status",
+      "name": "Update Posted Status",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        220
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable_credentials",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ $vars.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Pages"
+        },
+        "id": "={{ $json.recordId }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Posted",
+            "Tweet IDs": "={{ $json.tweetIds.join(', ') }}",
+            "Tweet URLs": "={{ $json.tweetUrls.join('\\n') }}",
+            "Main Tweet URL": "={{ $json.mainTweetUrl }}",
+            "Thread Length": "={{ $json.threadLength }}",
+            "Posted At": "={{ $json.postedAt }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-thread-posted",
+      "name": "Update Thread Posted Status",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        420
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable_credentials",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-records-found",
+      "name": "No Records to Process",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        360,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handling and logging\nconst error = $input.first().json.error || $input.first().json.message || 'Unknown error occurred';\nconsole.error('Workflow Error:', error);\n\n// Try to get record ID from various sources\nlet recordId = null;\ntry {\n  recordId = $('Prepare Tweet Content').first()?.json?.recordId || \n             $('Create Airtable Record').first()?.json?.id ||\n             $('Process AI Response').first()?.json?.recordId;\n} catch (e) {\n  console.log('Could not determine record ID for error logging');\n}\n\nreturn {\n  error: error.toString(),\n  recordId: recordId,\n  timestamp: new Date().toISOString(),\n  step: 'Error Handler'\n};"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ $vars.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Pages"
+        },
+        "id": "={{ $json.recordId }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Error",
+            "Error": "={{ $json.error }}",
+            "Error At": "={{ $json.timestamp }}"
+          }
+        },
+        "options": {
+          "ignoreHttpStatusErrors": true
+        },
+        "continueOnFail": true
+      },
+      "id": "update-error-status",
+      "name": "Update Error Status",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        600
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable_credentials",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Content Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Content Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Content Blob": {
+      "main": [
+        [
+          {
+            "node": "Create Airtable Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Airtable Record": {
+      "main": [
+        [
+          {
+            "node": "AI Content Refiner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Refiner": {
+      "main": [
+        [
+          {
+            "node": "Process AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Response": {
+      "main": [
+        [
+          {
+            "node": "Update Record with AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Ready to Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ready to Post": {
+      "main": [
+        [
+          {
+            "node": "Has Records to Process?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Records to Process?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Tweet Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Records to Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Tweet Content": {
+      "main": [
+        [
+          {
+            "node": "AI Tweet Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Tweet Generator": {
+      "main": [
+        [
+          {
+            "node": "Thread or Single Tweet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thread or Single Tweet?": {
+      "main": [
+        [
+          {
+            "node": "Post Single Tweet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Thread Tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Single Tweet": {
+      "main": [
+        [
+          {
+            "node": "Collect Single Tweet Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Thread Tweets": {
+      "main": [
+        [
+          {
+            "node": "Post Thread Tweet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Thread Tweet": {
+      "main": [
+        [
+          {
+            "node": "Wait Between Tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Between Tweets": {
+      "main": [
+        [
+          {
+            "node": "Collect Thread Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Single Tweet Result": {
+      "main": [
+        [
+          {
+            "node": "Update Posted Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Thread Results": {
+      "main": [
+        [
+          {
+            "node": "Update Thread Posted Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": {
+      "errorWorkflow": "error-handler"
+    }
+  },
+  "staticData": {},
+  "tags": [
+    {
+      "createdAt": "2025-01-27T12:00:00.000Z",
+      "updatedAt": "2025-01-27T12:00:00.000Z",
+      "id": "content-automation",
+      "name": "Content Automation"
+    }
+  ],
+  "triggerCount": 2,
+  "updatedAt": "2025-01-27T12:00:00.000Z",
+  "versionId": "2.0",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "content-to-twitter-workflow-enhanced"
+  }
+}

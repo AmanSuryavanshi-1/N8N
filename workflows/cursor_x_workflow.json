@@ -1,0 +1,668 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "02ec5cd1-26db-454f-9bc1-e9671cb1448c",
+      "name": "🎯 Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2940,
+        40
+      ],
+      "notes": "🟢 START HERE: Click to begin the content automation process. This fetches content from your Notion database marked as 'Ready to Post'."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "approval_check",
+              "leftValue": "approve",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a927dc25-b1b2-4a4f-a0c1-9d7b6c26153b",
+      "name": "✅ Approval Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        40
+      ],
+      "notes": "🟠 APPROVAL SYSTEM: CHANGE THE LEFT VALUE TO 'approve' TO PROCEED WITH POSTING. Set to 'decline' to skip. This is your manual approval control!"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "content_type_check",
+              "leftValue": "={{ $json.contentType }}",
+              "rightValue": "thread",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d628d31d-efb0-47aa-8a37-a5c51af1fd4d",
+      "name": "🔀 Content Router",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        40
+      ],
+      "notes": "🔄 ROUTING LOGIC: Intelligently routes content to thread or single tweet posting based on content type."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced thread management with rate limiting and proper reply chaining\nconst content = $input.first().json;\nconst results = [];\n\nfor (let i = 0; i < content.thread.length; i++) {\n  const tweet = content.thread[i];\n  const isFirstTweet = i === 0;\n  const delay = i * 3000; // 3 second delay between tweets for free account\n  \n  const tweetData = {\n    tweet_text: tweet.tweet_text,\n    character_count: tweet.character_count,\n    is_thread: true,\n    thread_position: i + 1,\n    total_tweets: content.thread.length,\n    reply_to_tweet_id: isFirstTweet ? null : 'PREVIOUS_TWEET_ID', // Will be updated during posting\n    delay_ms: delay,\n    originalId: content.originalId,\n    hashtags: tweet.hashtags,\n    engagement_hook: tweet.engagement_hook,\n    isFirstTweet: isFirstTweet,\n    isLastTweet: i === content.thread.length - 1\n  };\n  \n  results.push({\n    json: tweetData\n  });\n}\n\nreturn results;"
+      },
+      "id": "2d8a7e73-be77-4251-be01-e3eb74f38f88",
+      "name": "🧵 Thread Manager",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        -60
+      ],
+      "notes": "⚙️ THREAD MANAGEMENT: Manages thread chain with rate limiting, reply chaining, and posting sequence optimization for free Twitter accounts."
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.tweet_text }}",
+        "additionalFields": {}
+      },
+      "id": "c467b46f-dc08-43a1-b90f-a1da2350649f",
+      "name": "🧵 Post Thread Tweet",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        360,
+        -60
+      ],
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "V5cXMtln5zUxaojE",
+          "name": "X account"
+        }
+      },
+      "notes": "🔴 CREDENTIAL SETUP: Connect your Twitter/X account. Handles thread posting with proper reply chaining and rate limiting."
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.tweet_text }}",
+        "additionalFields": {}
+      },
+      "id": "aebf4827-3764-4dce-8c80-b2c288927297",
+      "name": "📱 Post Single Tweet",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        360,
+        140
+      ],
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "V5cXMtln5zUxaojE",
+          "name": "X account"
+        }
+      },
+      "notes": "🔴 CREDENTIAL SETUP: Same Twitter/X credentials as thread posting. Handles single tweet publishing with optimal formatting."
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{ $json.originalId }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "type": "select",
+              "selectValue": "Posted"
+            },
+            {
+              "key": "PostedAt",
+              "type": "date"
+            },
+            {
+              "key": "TweetText",
+              "type": "richText"
+            },
+            {
+              "key": "TweetID",
+              "type": "richText"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bc58f9da-127d-4862-958f-a0d94fd61ef3",
+      "name": "📝 Update Notion Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        580,
+        40
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "je8hKPK6RzYSk4JA",
+          "name": "Notion account 2"
+        }
+      },
+      "notes": "✅ STATUS TRACKING: Updates your Notion database with posting status, timestamp, tweet content, and tweet ID for complete tracking."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced campaign analytics with learning focus and detailed metrics\nconst results = $input.all();\nconst successCount = results.filter(r => r.json.success !== false).length;\nconst totalCount = results.length;\n\nconst summary = {\n  campaign_completed: true,\n  total_tweets: totalCount,\n  successful_posts: successCount,\n  failed_posts: totalCount - successCount,\n  completion_rate: `${Math.round((successCount/totalCount) * 100)}%`,\n  completed_at: new Date().toISOString(),\n  campaign_type: results[0]?.json?.is_thread ? 'thread' : 'single',\n  performance_metrics: {\n    engagement_potential: 'high',\n    learning_focus: 'strong',\n    authenticity: 'genuine',\n    content_quality: 'educational',\n    audience_targeting: 'learners and builders'\n  },\n  expected_benefits: [\n    'Increased engagement from fellow learners',\n    'Enhanced reputation as curious learner',\n    'Stronger community connections',\n    'Higher content reach through authenticity',\n    'Improved learning network growth'\n  ]\n};\n\nreturn [{\n  json: {\n    ...summary,\n    message: `🎉 Learning Content Posted! Successfully shared ${successCount}/${totalCount} tweets with authentic learning insights.`,\n    next_steps: [\n      'Monitor engagement and respond to comments',\n      'Share follow-up learnings based on responses',\n      'Connect with people who engage with your content',\n      'Document what resonates most with your audience',\n      'Plan next learning content based on community interest'\n    ],\n    optimization_tips: [\n      'Best posting times for learning content: 8-10 AM and 6-8 PM',\n      'Engage authentically within first hour',\n      'Share follow-up insights based on comments',\n      'Build genuine connections with fellow learners',\n      'Use learning threads to establish thought leadership'\n    ],\n    learning_focus_benefits: [\n      'More authentic and relatable content',\n      'Attracts genuinely interested audience',\n      'Creates opportunities for mutual learning',\n      'Builds trust through vulnerability',\n      'Encourages knowledge sharing community'\n    ]\n  }\n}];"
+      },
+      "id": "37915ae9-8d80-41ed-98ae-a3fc77dd69c1",
+      "name": "📊 Learning Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        40
+      ],
+      "notes": "📈 ANALYTICS: Provides comprehensive campaign summary with learning-focused success metrics, community building insights, and authentic engagement recommendations."
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "21a34bf1-f7e5-8035-b16f-d5ebf63a86a9",
+          "mode": "list",
+          "cachedResultName": "21a34bf1-f7e5-8035-b16f-d5ebf63a86a9",
+          "cachedResultUrl": "https://www.notion.so/21a34bf1f7e58035b16fd5ebf63a86a9"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|status",
+              "condition": "equals",
+              "statusValue": "Ready to Post"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "36745584-5fb7-4d8f-87cd-e5a3cafa758a",
+      "name": "📚 Get Notion Content",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -2720,
+        40
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "je8hKPK6RzYSk4JA",
+          "name": "Notion account 2"
+        }
+      },
+      "notes": "🔵 CREDENTIAL SETUP: Add your Notion API credentials here. Go to Settings > Credentials > Add Credential > Notion API. Get your API key from https://www.notion.so/my-integrations"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst processedItems = [];\n\nfor (const item of items) {\n  try {\n    const data = item.json;\n    const extractText = (richText) => {\n      return Array.isArray(richText)\n        ? richText.map(i => i.plain_text || '').join(' ').trim()\n        : '';\n    };\n\n    // Extract Content Pages relation property\n    const contentPages = data.properties['Content Pages']?.relation || [];\n    \n    const content = {\n      id: data.id,\n      title: extractText(data.properties.About?.title) || 'Learning Journey',\n      contentType: data.properties.ContentType?.select?.name || 'thread',\n      projectPhase: data.properties.ProjectPhase?.select?.name || 'development',\n      status: data.properties.Status?.select?.name || 'Ready to Post',\n      category: data.properties.Category?.select?.name || 'Learning',\n      tags: data.properties.Tags?.multi_select?.map(tag => tag.name) || [],\n      contentPages: contentPages, // Store the linked pages\n      fullPageContent: '',\n      hasImages: false,\n      images: [],\n      extractedSections: {}\n    };\n\n    const postingStrategy = content.contentType === 'thread' ? 'thread' : 'single';\n    const threadCount = postingStrategy === 'thread'\n      ? (content.category === 'tutorial' ? 8\n         : content.category === 'case-study' ? 6\n         : 5)\n      : 1;\n\n    // Create separate items for each content page\n    if (contentPages.length > 0) {\n      for (const page of contentPages) {\n        const enhancedPrompt = postingStrategy === 'thread'\n          ? `ROLE: You are a curious learner who loves sharing knowledge and building in public. You're passionate about learning and helping others discover valuable insights.\n\nMISSION: Transform the provided content into a ${threadCount}-tweet thread that shows your learning journey and shares valuable insights in an engaging, humble way.\n\nCONTENT CONTEXT:\n- Title: ${content.title}\n- Category: ${content.category}\n- Learning Phase: ${content.projectPhase}\n- Tags: ${content.tags.join(', ')}\n\nTHREAD STRATEGY:\n🎯 Hook (Tweet 1): Start with \"I just learned something fascinating about...\" or \"Been diving deep into...\"\n📚 Value Delivery (Tweets 2-${threadCount-1}): Share key learnings, insights, and practical takeaways\n🚀 Call-to-Action (Tweet ${threadCount}): End with genuine questions to spark discussion\n\nQUALITY REQUIREMENTS:\n✅ Each tweet must be under 240 characters (Twitter free account limit)\n✅ Use curious language: \"discovered\", \"learned\", \"fascinating\", \"turns out\"\n✅ Include specific examples, numbers, or insights when possible\n✅ Add strategic emojis (max 2 per tweet)\n✅ Create natural conversation flow between tweets\n✅ Include relevant hashtags: #BuildInPublic #Learning #${content.category}\n✅ End with genuine questions to encourage engagement\n\nTONE: Curious, humble, enthusiastic about learning, genuinely helpful, conversational\n\nOUTPUT FORMAT (JSON):\n{\n  \"thread\": [\n    {\"tweet_text\": \"1/${threadCount} 🧵 I just discovered something fascinating about [topic]. Here's what I learned...\", \"engagement_hook\": \"curiosity-driven\", \"cta_type\": \"learning-share\"},\n    {\"tweet_text\": \"2/${threadCount} The key insight that blew my mind: [specific learning]...\", \"engagement_hook\": \"insight\", \"cta_type\": \"value\"}\n  ],\n  \"hashtags\": [\"#BuildInPublic\", \"#Learning\", \"#${content.category}\"],\n  \"thread_summary\": \"Learning journey about ${content.title}\",\n  \"engagement_strategy\": \"Curious learner sharing valuable insights\",\n  \"target_audience\": \"Fellow learners and curious minds\",\n  \"viral_potential\": \"high\"\n}\n\nCONTENT TO ANALYZE:\n{CONTENT_PLACEHOLDER}`\n          : `ROLE: You are a passionate learner who loves sharing discoveries and building in public.\n\nMISSION: Create an engaging single tweet that shares a valuable learning or insight in a humble, curious way.\n\nCONTENT CONTEXT:\n- Title: ${content.title}\n- Category: ${content.category}\n- Learning Phase: ${content.projectPhase}\n- Tags: ${content.tags.join(', ')}\n\nTWEET STRATEGY:\n🎯 Hook: Start with learning-focused opener (\"Just learned...\", \"Discovered...\")\n💡 Value: Share one key insight or takeaway\n🚀 CTA: End with genuine question to spark discussion\n\nQUALITY REQUIREMENTS:\n✅ Maximum 240 characters (Twitter free account)\n✅ Include specific examples or insights when possible\n✅ Use learning language: \"discovered\", \"learned\", \"turns out\"\n✅ Add 1-2 strategic emojis\n✅ Include relevant hashtags: #BuildInPublic #Learning #${content.category}\n✅ Create genuine curiosity\n✅ End with engaging question\n\nTONE: Curious learner, humble, enthusiastic, genuinely helpful\n\nOUTPUT FORMAT (JSON):\n{\n  \"tweet_text\": \"🤯 Just learned something mind-blowing about [topic]. Turns out [insight]. What's been your biggest learning recently?\",\n  \"hashtags\": [\"#BuildInPublic\", \"#Learning\", \"#${content.category}\"],\n  \"engagement_strategy\": \"Curious learner sharing insights\",\n  \"call_to_action\": \"What's your experience with this?\",\n  \"target_audience\": \"Fellow learners and builders\",\n  \"viral_potential\": \"high\",\n  \"authority_building\": \"Knowledge sharing through learning\"\n}\n\nCONTENT TO ANALYZE:\n{CONTENT_PLACEHOLDER}`;\n\n        processedItems.push({\n          json: {\n            ...content,\n            currentPageId: page.id, // Track which content page we're processing\n            enhancedPrompt,\n            postingStrategy,\n            threadCount,\n            processingTimestamp: new Date().toISOString()\n          }\n        });\n      }\n    } else {\n      // Fallback if no content pages found\n      processedItems.push({\n        json: {\n          ...content,\n          currentPageId: content.id,\n          enhancedPrompt: 'Create a tweet about a learning discovery that shows curiosity and helps others.',\n          postingStrategy: 'single',\n          threadCount: 1,\n          fallbackMode: true,\n          processingTimestamp: new Date().toISOString()\n        }\n      });\n    }\n  } catch (error) {\n    console.error('Error processing item:', error);\n    processedItems.push({\n      json: {\n        id: 'fallback',\n        title: 'Learning Journey',\n        postingStrategy: 'single',\n        hasImages: false,\n        images: [],\n        enhancedPrompt: 'Create a tweet about a learning discovery that shows curiosity and helps others.',\n        category: 'learning',\n        fallbackMode: true\n      }\n    });\n  }\n}\n\nreturn processedItems;\n"
+      },
+      "id": "9894e70c-ff23-478b-9a50-0c6f56730bd9",
+      "name": "🧠 Learning-Focused Strategy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2280,
+        40
+      ],
+      "notes": "🟡 CONTENT PROCESSING: Creates learning-focused AI prompts that position you as a curious learner sharing valuable insights, not an expert."
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": {
+          "__rl": true,
+          "value": "={{ $json.currentPageId }}",
+          "mode": "id",
+          "__regex": "^([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "returnAll": true,
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": false,
+      "id": "c4958c1a-b247-4e3f-a530-116f14f5d3d0",
+      "name": "📄 Extract Page Content",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -2060,
+        40
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "je8hKPK6RzYSk4JA",
+          "name": "Notion account 2"
+        }
+      },
+      "notes": "📖 CONTENT EXTRACTION: Retrieves all blocks from your Notion page including text, images, code blocks, and formatting. This provides rich context for AI content generation."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDpxI7zkEX41FJJUGZ8x2-8wDWg8QcwVDU",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    \"contents\": [{\n      \"parts\": [{\n        \"text\": $json.enhancedPrompt\n      }]\n    }]\n  }\n}}",
+        "options": {
+          "timeout": 45000
+        }
+      },
+      "id": "4d5bb9ae-b1db-47a5-b96b-f1c747db62da",
+      "name": "🤖 Generate Learning Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -960,
+        40
+      ],
+      "notes": "🔴 AI GENERATION: Uses Gemini to create learning-focused content that positions you as a curious learner sharing valuable insights."
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json;\nlet previewContent = '';\nlet visualPreview = '';\n\n// Helper to safely join hashtags\nconst safeJoin = (arr, sep = ' ') => Array.isArray(arr) ? arr.join(sep) : '';\n\nif (content.contentType === 'thread') {\n  previewContent = '🧵 LEARNING THREAD PREVIEW\\n';\n  previewContent += `📊 ${content.totalTweets || (content.thread ? content.thread.length : 0)} tweets | 🎯 ${content.target_audience || ''} | 🚀 ${content.viral_potential || ''} potential\\n\\n`;\n\n  visualPreview = '📱 TWITTER THREAD VISUALIZATION:\\n';\n  visualPreview += '┌─────────────────────────────────────┐\\n';\n\n  (content.thread || []).forEach((tweet, index) => {\n    const tweetNum = `${index + 1}/${content.totalTweets || (content.thread ? content.thread.length : 0)}`;\n    const charCount = tweet.character_count || (tweet.tweet_text ? tweet.tweet_text.length : 0);\n    const charStatus = charCount <= 240 ? '✅' : '⚠️';\n\n    previewContent += `${tweetNum}: ${tweet.tweet_text || ''}`;\n    if (tweet.has_image) {\n      previewContent += ' [📷 IMAGE]';\n    }\n    previewContent += ` ${charStatus} ${charCount}/240\\n\\n`;\n\n    // Visual representation\n    visualPreview += `│ ${tweetNum} ${charStatus} (${charCount}/240)\\n`;\n    visualPreview += `│ ${(tweet.tweet_text || '').substring(0, 35)}...\\n`;\n    if (index < (content.totalTweets || (content.thread ? content.thread.length : 0)) - 1) {\n      visualPreview += '│     ↓ REPLY THREAD\\n';\n    }\n  });\n\n  visualPreview += '└─────────────────────────────────────┘\\n';\n\n  previewContent += `\\n📈 ENGAGEMENT STRATEGY: ${content.engagement_strategy || ''}\\n`;\n  previewContent += `🏷️ HASHTAGS: ${safeJoin(content.hashtags)}\\n`;\n  previewContent += `📝 SUMMARY: ${content.thread_summary || ''}\\n`;\n\n} else {\n  const charCount = content.character_count || (content.tweet_text ? content.tweet_text.length : 0);\n  const charStatus = charCount <= 240 ? '✅' : '⚠️';\n\n  previewContent = '📱 LEARNING TWEET PREVIEW\\n';\n  previewContent += `🎯 ${content.target_audience || ''} | 🚀 ${content.viral_potential || ''} potential\\n\\n`;\n\n  visualPreview = '📱 TWITTER POST VISUALIZATION:\\n';\n  visualPreview += '┌─────────────────────────────────────┐\\n';\n  visualPreview += `│ ${charStatus} ${charCount}/240 characters\\n`;\n  visualPreview += `│ ${content.tweet_text || ''}\\n`;\n  if (content.has_image) {\n    visualPreview += '│ [📷 IMAGE ATTACHED]\\n';\n  }\n  visualPreview += '└─────────────────────────────────────┘\\n';\n\n  previewContent += `${content.tweet_text || ''}`;\n  if (content.has_image) {\n    previewContent += ' [📷 IMAGE]';\n  }\n  previewContent += ` ${charStatus} ${charCount}/240\\n\\n`;\n\n  previewContent += `📈 STRATEGY: ${content.engagement_strategy || ''}\\n`;\n  previewContent += `🏷️ HASHTAGS: ${safeJoin(content.hashtags)}\\n`;\n  previewContent += `💬 CTA: ${content.call_to_action || ''}\\n`;\n  previewContent += `🎯 LEARNING FOCUS: ${content.authority_building || ''}\\n`;\n}\n\n// Add image information if available\nif (content.hasImages && Array.isArray(content.images) && content.images.length > 0) {\n  previewContent += `\\n📷 IMAGES AVAILABLE (${content.images.length}):\\n`;\n  content.images.forEach((img, i) => {\n    previewContent += `${i+1}. ${img.caption || 'Untitled'} (${img.context || 'General context'})\\n`;\n  });\n  previewContent += '\\n⚠️ NOTE: Images cannot be auto-posted to Twitter via this workflow. You\\'ll need to manually add them when posting.\\n';\n}\n\npreviewContent += `\\n${visualPreview}`;\npreviewContent += '\\n⚡ APPROVAL REQUIRED\\n';\npreviewContent += '\\n🎯 TO APPROVE AND POST:\\n';\npreviewContent += '1. Review the content above\\n';\npreviewContent += '2. In the next node (✅ Approval Gate), set the field \"userDecision\" to \"approve\"\\n';\npreviewContent += '3. Or set it to \"decline\" to skip posting\\n';\npreviewContent += '4. Then re-run the workflow from the Approval Gate node\\n';\npreviewContent += `\\n🕐 Generated: ${new Date().toLocaleString()}`;\n\n// Add approval instructions\nconst approvalInstructions = {\n  step1: 'Review the content preview above',\n  step2: 'Go to the \"✅ Approval Gate\" node',\n  step3: 'Click on the node settings',\n  step4: 'Find the condition that checks \"userDecision\"',\n  step5: 'Change the right value from \"approve\" to your decision',\n  step6: 'Set to \"approve\" to post, \"decline\" to skip',\n  step7: 'Save and re-run from the Approval Gate node'\n};\n\nreturn [{\n  json: {\n    ...content,\n    previewContent,\n    visualPreview,\n    awaitingApproval: true,\n    approvalOptions: ['approve', 'decline'],\n    approvalInstructions,\n    generatedTimestamp: Date.now(),\n    readyForReview: true,\n    // Default to decline for safety\n    userDecision: 'decline'\n  }\n}];"
+      },
+      "id": "4f86b240-affb-4627-bd23-00e855a1c457",
+      "name": "⚡ Learning Content Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -740,
+        40
+      ],
+      "notes": "🟣 CONTENT PROCESSING: Intelligently parses AI-generated content with learning focus, robust error handling, and 240-character limit enforcement."
+    },
+    {
+      "parameters": {
+        "jsCode": "const allBlocks = $input.all();\nconst processedBlocks = [];\n\nfor (const blockItem of allBlocks) {\n  const block = blockItem.json;\n  \n  // Check if block has children (especially toggles)\n  if (block.has_children && (block.type === 'toggle' || block.type === 'bulleted_list_item' || block.type === 'numbered_list_item')) {\n    // Mark this block as needing children fetched\n    block._needsChildren = true;\n    block._blockId = block.id;\n  }\n  \n  processedBlocks.push({ json: block });\n}\n\nreturn processedBlocks;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1840,
+        40
+      ],
+      "id": "c8100551-1e10-4084-8fb3-096ae14cea2f",
+      "name": "Fetch Toggle Children"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.notion.com/v1/blocks/{{ $json.id }}/children?page_size=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "beaa4423-1db3-4b2b-8f69-51d3f9823d91",
+      "name": "🔄 Get Toggle Children",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1620,
+        40
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "notionApi": {
+          "id": "je8hKPK6RzYSk4JA",
+          "name": "Notion account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst mainBlocks = allItems.filter(item => !item.json.results);\nconst childBlocks = allItems.filter(item => item.json.results);\n\n// Create map of block children\nconst childrenMap = {};\nchildBlocks.forEach(child => {\n  if (child.json.results) {\n    const blockId = child.json.parent_block_id || child.json.parent?.block_id;\n    if (blockId) {\n      childrenMap[blockId] = child.json.results;\n    }\n  }\n});\n\n// Process and enhance blocks with their children\nconst processBlock = (block, depth = 0) => {\n  let content = '';\n  const indent = '  '.repeat(depth);\n  \n  switch (block.type) {\n    case 'paragraph':\n      if (block.paragraph?.rich_text) {\n        content = block.paragraph.rich_text.map(t => t.plain_text || '').join('').trim();\n        if (content) return `${indent}${content}\\n\\n`;\n      }\n      break;\n      \n    case 'heading_1':\n    case 'heading_2': \n    case 'heading_3':\n      if (block[block.type]?.rich_text) {\n        const heading = block[block.type].rich_text.map(t => t.plain_text || '').join('');\n        const level = '#'.repeat(parseInt(block.type.split('_')[1]));\n        return `\\n${indent}${level} ${heading}\\n`;\n      }\n      break;\n      \n    case 'bulleted_list_item':\n    case 'numbered_list_item':\n      if (block[block.type]?.rich_text) {\n        content = block[block.type].rich_text.map(t => t.plain_text || '').join('');\n        let result = `${indent}• ${content}\\n`;\n        \n        // Add children if exist\n        if (childrenMap[block.id]) {\n          childrenMap[block.id].forEach(child => {\n            result += processBlock(child, depth + 1);\n          });\n        }\n        return result;\n      }\n      break;\n      \n    case 'toggle':\n      if (block.toggle?.rich_text) {\n        const toggleTitle = block.toggle.rich_text.map(t => t.plain_text || '').join('');\n        let result = `\\n${indent}▼ ${toggleTitle}\\n`;\n        \n        // Process toggle children\n        if (childrenMap[block.id]) {\n          childrenMap[block.id].forEach(child => {\n            result += processBlock(child, depth + 1);\n          });\n        }\n        return result;\n      }\n      break;\n      \n    case 'callout':\n      if (block.callout?.rich_text) {\n        content = block.callout.rich_text.map(t => t.plain_text || '').join('');\n        const emoji = block.callout.icon?.emoji || '💡';\n        return `${indent}${emoji} ${content}\\n\\n`;\n      }\n      break;\n      \n    case 'code':\n      if (block.code?.rich_text) {\n        content = block.code.rich_text.map(t => t.plain_text || '').join('');\n        const lang = block.code.language || 'text';\n        return `${indent}\\`\\`\\`${lang}\\n${content}\\n\\`\\`\\`\\n\\n`;\n      }\n      break;\n      \n    case 'image':\n      const imageUrl = block.image?.file?.url || block.image?.external?.url;\n      const caption = block.image?.caption?.map(c => c.plain_text || '').join('') || '';\n      if (imageUrl) {\n        return `${indent}[IMAGE: ${caption || 'Visual content'}]\\n\\n`;\n      }\n      break;\n      \n    case 'quote':\n      if (block.quote?.rich_text) {\n        content = block.quote.rich_text.map(t => t.plain_text || '').join('');\n        return `${indent}> ${content}\\n\\n`;\n      }\n      break;\n  }\n  \n  return '';\n};\n\n// Process all main blocks\nlet fullContent = '';\nconst extractedData = {\n  headings: [],\n  paragraphs: [],\n  toggles: [],\n  bulletPoints: [],\n  keyInsights: [],\n  metrics: []\n};\n\nmainBlocks.forEach(item => {\n  const block = item.json;\n  const processedContent = processBlock(block);\n  fullContent += processedContent;\n  \n  // Extract metadata\n  if (block.type === 'toggle' && block.toggle?.rich_text) {\n    extractedData.toggles.push(block.toggle.rich_text.map(t => t.plain_text).join(''));\n  }\n  if (block.type.includes('heading') && block[block.type]?.rich_text) {\n    extractedData.headings.push(block[block.type].rich_text.map(t => t.plain_text).join(''));\n  }\n  if (block.type === 'paragraph' && block.paragraph?.rich_text) {\n    const text = block.paragraph.rich_text.map(t => t.plain_text).join('');\n    extractedData.paragraphs.push(text);\n    // Extract metrics\n    const metrics = text.match(/\\d+[%$]?|\\d+\\.\\d+[%$]?/g);\n    if (metrics) extractedData.metrics.push(...metrics);\n  }\n});\n\n// Get the original strategy data from the first input item (from Learning-Focused Strategy node)
+const originalContent = $input.first().json;\n\nconst contentSummary = `\nCONTENT SUMMARY:\n- Word Count: ${fullContent.split(/\\s+/).length}\n- Main Topics: ${extractedData.headings.slice(0, 3).join(', ')}\n- Toggle Sections: ${extractedData.toggles.slice(0, 3).join(', ')}\n- Key Metrics: ${extractedData.metrics.slice(0, 5).join(', ')}\n\nFULL CONTENT:\n${fullContent}`;\n\nconst updatedPrompt = originalContent?.enhancedPrompt?.replace(\n  '[WILL BE FILLED FROM PAGE BLOCKS]',\n  contentSummary\n) || contentSummary;\n\nreturn [{\n  json: {\n    ...originalContent,\n    fullPageContent: fullContent,\n    contentSummary: contentSummary,\n    extractedSections: extractedData,\n    enhancedPrompt: updatedPrompt,\n    processingTimestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1400,
+        40
+      ],
+      "id": "215bbbd1-0444-4673-bc5d-7b77104fe84e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Visual Preview Generator with learning focus and approval mechanism
+// Get the AI-generated content from the Generate Learning Content node
+const aiResponse = $input.first().json;
+
+// Parse the AI response to extract the content
+let content;
+try {
+  // The AI response should contain the generated content in the candidates array
+  const generatedText = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (generatedText) {
+    // Try to parse as JSON if it's structured content
+    try {
+      content = JSON.parse(generatedText);
+    } catch {
+      // If not JSON, treat as plain text and create a simple structure
+      content = {
+        contentType: 'single',
+        tweet_text: generatedText.substring(0, 240),
+        character_count: generatedText.length,
+        target_audience: 'learners',
+        viral_potential: 'medium'
+      };
+    }
+  } else {
+    throw new Error('No generated content found in AI response');
+  }
+} catch (error) {
+  // Fallback content structure
+  content = {
+    contentType: 'single',
+    tweet_text: 'Error processing AI response',
+    character_count: 0,
+    target_audience: 'learners',
+    viral_potential: 'low',
+    error: error.message
+  };
+}\nlet previewContent = '';\nlet visualPreview = '';\n\n// Helper to safely join hashtags\nconst safeJoin = (arr, sep = ' ') => Array.isArray(arr) ? arr.join(sep) : '';\n\nif (content.contentType === 'thread') {\n  previewContent = '🧵 LEARNING THREAD PREVIEW\n';\n  previewContent += `📊 ${content.totalTweets} tweets | 🎯 ${content.target_audience || ''} | 🚀 ${content.viral_potential || ''} potential\n\n`;\n  \n  visualPreview = '📱 TWITTER THREAD VISUALIZATION:\n';\n  visualPreview += '┌─────────────────────────────────────┐\n';\n  \n  content.thread.forEach((tweet, index) => {\n    const tweetNum = `${index + 1}/${content.totalTweets}`;\n    const charCount = tweet.character_count || (tweet.tweet_text ? tweet.tweet_text.length : 0);\n    const charStatus = charCount <= 240 ? '✅' : '⚠️';\n    \n    previewContent += `${tweetNum}: ${tweet.tweet_text || ''}`;\n    if (tweet.has_image) {\n      previewContent += ' [📷 IMAGE]';\n    }\n    previewContent += ` ${charStatus} ${charCount}/240\n\n`;\n    \n    // Visual representation\n    visualPreview += `│ ${tweetNum} ${charStatus} (${charCount}/240)\n`;\n    visualPreview += `│ ${(tweet.tweet_text || '').substring(0, 35)}...\n`;\n    if (index < content.totalTweets - 1) {\n      visualPreview += '│     ↓ REPLY THREAD\n';\n    }\n  });\n  \n  visualPreview += '└─────────────────────────────────────┘\n';\n  \n  previewContent += `\n📈 ENGAGEMENT STRATEGY: ${content.engagement_strategy || ''}\n`;\n  previewContent += `🏷️ HASHTAGS: ${safeJoin(content.hashtags)}\n`;\n  previewContent += `📝 SUMMARY: ${content.thread_summary || ''}\n`;\n  \n} else {\n  const charCount = content.character_count || (content.tweet_text ? content.tweet_text.length : 0);\n  const charStatus = charCount <= 240 ? '✅' : '⚠️';\n  \n  previewContent = '📱 LEARNING TWEET PREVIEW\n';\n  previewContent += `🎯 ${content.target_audience || ''} | 🚀 ${content.viral_potential || ''} potential\n\n`;\n  \n  visualPreview = '📱 TWITTER POST VISUALIZATION:\n';\n  visualPreview += '┌─────────────────────────────────────┐\n';\n  visualPreview += `│ ${charStatus} ${charCount}/240 characters\n`;\n  visualPreview += `│ ${content.tweet_text || ''}\n`;\n  if (content.has_image) {\n    visualPreview += '│ [📷 IMAGE ATTACHED]\n';\n  }\n  visualPreview += '└─────────────────────────────────────┘\n';\n  \n  previewContent += `${content.tweet_text || ''}`;\n  if (content.has_image) {\n    previewContent += ' [📷 IMAGE]';\n  }\n  previewContent += ` ${charStatus} ${charCount}/240\n\n`;\n  \n  previewContent += `📈 STRATEGY: ${content.engagement_strategy || ''}\n`;\n  previewContent += `🏷️ HASHTAGS: ${safeJoin(content.hashtags)}\n`;\n  previewContent += `💬 CTA: ${content.call_to_action || ''}\n`;\n  previewContent += `🎯 LEARNING FOCUS: ${content.authority_building || ''}\n`;\n}\n\n// Add image information if available\nif (content.hasImages && Array.isArray(content.images) && content.images.length > 0) {\n  previewContent += `\n📷 IMAGES AVAILABLE (${content.images.length}):\n`;\n  content.images.forEach((img, i) => {\n    previewContent += `${i+1}. ${img.caption || 'Untitled'} (${img.context || 'General context'})\n`;\n  });\n  previewContent += '\n⚠️ NOTE: Images cannot be auto-posted to Twitter via this workflow. You\\'ll need to manually add them when posting.\n';\n}\n\npreviewContent += `\n${visualPreview}`;\npreviewContent += '\n⚡ APPROVAL REQUIRED\n';\npreviewContent += '\n🎯 TO APPROVE AND POST:\n';\npreviewContent += '1. Review the content above\n';\npreviewContent += '2. In the next node (✅ Approval Gate), set the field \"userDecision\" to \"approve\"\n';\npreviewContent += '3. Or set it to \"decline\" to skip posting\n';\npreviewContent += '4. Then re-run the workflow from the Approval Gate node\n';\npreviewContent += `\n🕐 Generated: ${new Date().toLocaleString()}`;\n\n// Add approval instructions\nconst approvalInstructions = {\n  step1: 'Review the content preview above',\n  step2: 'Go to the \"✅ Approval Gate\" node',\n  step3: 'Click on the node settings',\n  step4: 'Find the condition that checks \"userDecision\"',\n  step5: 'Change the right value from \"approve\" to your decision',\n  step6: 'Set to \"approve\" to post, \"decline\" to skip',\n  step7: 'Save and re-run from the Approval Gate node'\n};\n\nreturn [{\n  json: {\n    ...content,\n    previewContent,\n    visualPreview,\n    awaitingApproval: true,\n    approvalOptions: ['approve', 'decline'],\n    approvalInstructions,\n    generatedTimestamp: Date.now(),\n    readyForReview: true,\n    // Default to decline for safety\n    userDecision: 'decline'\n  }\n}];"
+      },
+      "id": "1c983832-3623-4ea2-9daf-dd42f6c44719",
+      "name": "👁️ Learning Preview Generator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        40
+      ],
+      "notes": "🔵 PREVIEW SYSTEM: Creates detailed visual previews with learning focus, character counts, image information, and clear approval instructions."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Content Intelligence - Process extracted Notion content and prepare for AI generation\nconst allItems = $input.all();\nconst codeNodeData = allItems.find(item => item.json.fullPageContent);\n\nif (!codeNodeData) {\n  throw new Error('No processed content found from previous Code node');\n}\n\nconst processedData = codeNodeData.json;\nconst fullContent = processedData.fullPageContent || '';\nconst extractedSections = processedData.extractedSections || {};\n\n// Create enhanced content analysis\nconst contentAnalysis = {\n  wordCount: fullContent.split(/\\s+/).filter(word => word.length > 0).length,\n  headingCount: extractedSections.headings?.length || 0,\n  toggleCount: extractedSections.toggles?.length || 0,\n  paragraphCount: extractedSections.paragraphs?.length || 0,\n  hasImages: fullContent.includes('[IMAGE:'),\n  keyMetrics: extractedSections.metrics || [],\n  mainTopics: extractedSections.headings?.slice(0, 3) || [],\n  complexity: fullContent.length > 2000 ? 'high' : fullContent.length > 1000 ? 'medium' : 'low'\n};\n\n// Determine content strategy based on analysis\nconst contentStrategy = {\n  recommendedFormat: contentAnalysis.wordCount > 500 ? 'thread' : 'single_tweet',\n  targetAudience: 'tech_professionals',\n  tone: 'educational_authoritative',\n  focusAreas: contentAnalysis.mainTopics,\n  engagementHooks: extractedSections.toggles?.slice(0, 2) || []\n};\n\n// Create comprehensive prompt for AI generation\nconst enhancedPrompt = `You are an expert content strategist specializing in educational Twitter content for tech professionals.\n\nCONTENT TO ANALYZE:\n${fullContent}\n\nCONTENT ANALYSIS:\n- Word Count: ${contentAnalysis.wordCount}\n- Main Topics: ${contentAnalysis.mainTopics.join(', ')}\n- Key Sections: ${contentAnalysis.toggleCount} toggles, ${contentAnalysis.headingCount} headings\n- Complexity Level: ${contentAnalysis.complexity}\n- Has Visual Elements: ${contentAnalysis.hasImages ? 'Yes' : 'No'}\n\nTASK: Transform this content into engaging Twitter content that:\n1. Maintains educational value and authority\n2. Uses ${contentStrategy.recommendedFormat === 'thread' ? 'a multi-tweet thread format' : 'a single impactful tweet'}\n3. Targets ${contentStrategy.targetAudience}\n4. Includes relevant hashtags and engagement hooks\n5. Preserves key insights and actionable takeaways\n\nFORMAT REQUIREMENTS:\n- Each tweet must be under 240 characters\n- Include strategic hashtags (3-5 relevant ones)\n- Add clear call-to-action\n- Maintain professional yet engaging tone\n- If thread: number tweets and ensure logical flow\n\nRESPOND WITH VALID JSON in this exact format:\n{\n  \"contentType\": \"${contentStrategy.recommendedFormat}\",\n  \"totalTweets\": 1,\n  \"thread\": [\n    {\n      \"tweet_text\": \"Your tweet content here\",\n      \"character_count\": 0,\n      \"has_image\": false\n    }\n  ],\n  \"hashtags\": [\"#TechEducation\", \"#Learning\"],\n  \"engagement_strategy\": \"Educational authority building\",\n  \"target_audience\": \"${contentStrategy.targetAudience}\",\n  \"thread_summary\": \"Brief summary of the thread content\"\n}`;\n\nreturn [{\n  json: {\n    fullPageContent: fullContent,\n    contentAnalysis: contentAnalysis,\n    contentStrategy: contentStrategy,\n    enhancedPrompt: enhancedPrompt,\n    extractedSections: extractedSections,\n    processingTimestamp: new Date().toISOString(),\n    readyForAI: true\n  }\n}];"
+      },
+      "id": "10c476e0-467b-4b15-87dd-d6c26cb0855a",
+      "name": "🔍 Enhanced Content Intelligence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1180,
+        40
+      ],
+      "notes": "🟠 SMART ANALYSIS: Enhanced extraction that properly handles toggles, nested content, images with context, and creates rich content summaries for AI generation."
+    },
+    {
+      "parameters": {
+        "jsCode": "// This node extracts the page IDs for the content pages based on their names\nconst items = $input.all();\nconst out = [];\n\n// Assuming you have a mapping of page names to IDs from the previous Notion API call\nconst pageIdMapping = {\n  \"Agentic AI\": \"21a34bf1-f7e5-8095-b4dd-c2f8a6f2f72d\",\n  // Add more mappings dynamically based on the fetched pages\n};\n\nfor (const item of items) {\n  const contentPageNames = item.json.property_content_pages; // This should be an array of names\n  if (Array.isArray(contentPageNames)) {\n    contentPageNames.forEach(name => {\n      const pageId = pageIdMapping[name]; // Get the ID from the mapping\n      if (pageId) {\n        out.push({ json: { pageId: pageId } });\n      }\n    });\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2520,
+        -400
+      ],
+      "id": "d9855fc1-63dc-4131-8f5e-5e68f1c9639e",
+      "name": "Code1"
+    }
+  ],
+  "connections": {
+    "🎯 Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "📚 Get Notion Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Approval Gate": {
+      "main": [
+        [
+          {
+            "node": "🔀 Content Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Content Router": {
+      "main": [
+        [
+          {
+            "node": "🧵 Thread Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📱 Post Single Tweet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧵 Thread Manager": {
+      "main": [
+        [
+          {
+            "node": "🧵 Post Thread Tweet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧵 Post Thread Tweet": {
+      "main": [
+        [
+          {
+            "node": "📝 Update Notion Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Post Single Tweet": {
+      "main": [
+        [
+          {
+            "node": "📝 Update Notion Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Update Notion Status": {
+      "main": [
+        [
+          {
+            "node": "📊 Learning Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📚 Get Notion Content": {
+      "main": [
+        [
+          {
+            "node": "🧠 Learning-Focused Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Learning-Focused Strategy": {
+      "main": [
+        [
+          {
+            "node": "📄 Extract Page Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📄 Extract Page Content": {
+      "main": [
+        [
+          {
+            "node": "Fetch Toggle Children",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Generate Learning Content": {
+      "main": [
+        [
+          {
+            "node": "👁️ Learning Preview Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+
+    "Fetch Toggle Children": {
+      "main": [
+        [
+          {
+            "node": "🔄 Get Toggle Children",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Get Toggle Children": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "🔍 Enhanced Content Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "👁️ Learning Preview Generator": {
+      "main": [
+        [
+          {
+            "node": "✅ Approval Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Enhanced Content Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🤖 Generate Learning Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "2aff0c99a9b9ea9c976d68c5887d32445a6bdc6f59f99592eb5b4c4dbaf3d92e"
+  }
+}

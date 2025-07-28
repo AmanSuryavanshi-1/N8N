@@ -1,0 +1,915 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "firebase-webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2020,
+        200
+      ],
+      "id": "61e827c5-d197-4eec-b6ff-b84ab4021a53",
+      "name": "Firebase Database Trigger",
+      "webhookId": "firebase-new-entry-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "email-exists-check",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            },
+            {
+              "id": "name-exists-check",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1800,
+        200
+      ],
+      "id": "aa63ff02-5b73-4224-a01f-daefa0808b60",
+      "name": "Validate Contact Data"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Schedule Your Free Consultation - Aviators Training Centre",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }\n        .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }\n        .cta-button { display: inline-block; background: #ff6b35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }\n        .highlight { background: #e8f4fd; padding: 15px; border-left: 4px solid #2a5298; margin: 20px 0; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>✈️ Aviators Training Centre</h1>\n            <p>Your Journey to the Skies Starts Here</p>\n        </div>\n        \n        <div class=\"content\">\n            <h2>Hello {{ $json.name || 'Future Pilot' }},</h2>\n            \n            <p>Thank you for your interest in our aviation training programs! We're excited to help you achieve your dream of becoming a pilot.</p>\n            \n            <div class=\"highlight\">\n                <h3>🚀 Ready to Take the Next Step?</h3>\n                <p>We'd love to discuss your aviation goals and show you how our training programs can help you soar to new heights.</p>\n            </div>\n            \n            <p><strong>You can now schedule a FREE consultation directly:</strong></p>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"https://cal.com/amansuryavanshi/aviators-training-centre-enrollment-consultation?prefill=true&name={{ encodeURIComponent($json.name || '') }}&email={{ encodeURIComponent($json.email || '') }}\" class=\"cta-button\">\n                    📅 Schedule Your Free Consultation\n                </a>\n            </div>\n            \n            <p><strong>What to expect in your consultation:</strong></p>\n            <ul>\n                <li>✅ Detailed overview of our training programs</li>\n                <li>✅ Career guidance and pathway planning</li>\n                <li>✅ Financing options and scholarship opportunities</li>\n                <li>✅ Answers to all your questions</li>\n                <li>✅ Next steps to get started</li>\n            </ul>\n            \n            <p><strong>Can't schedule right now?</strong> No worries! Our team will reach out to you within 24-48 hours to discuss your options.</p>\n            \n            <div class=\"highlight\">\n                <p><strong>💡 Pro Tip:</strong> Booking directly saves time and gets you priority access to our aviation experts!</p>\n            </div>\n            \n            <p>We're committed to helping you achieve your aviation dreams. Whether you're interested in Private Pilot License, Commercial Pilot Training, or Airline Transport Pilot certification, we have the right program for you.</p>\n            \n            <p>Looking forward to speaking with you soon!</p>\n            \n            <p><strong>Blue skies ahead!</strong><br>\nThe Aviators Training Centre Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p><strong>Aviators Training Centre</strong><br>\n            📧 Email: info@aviatorstrainingcentre.com<br>\n            📞 Phone: +1-XXX-XXX-XXXX<br>\n            🌐 Website: www.aviatorstrainingcentre.com</p>\n            \n            <p style=\"font-size: 12px; color: #666; margin-top: 15px;\">\n                This email was sent because you requested information about our aviation training programs. \n                If you no longer wish to receive these emails, you can unsubscribe at any time.\n            </p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1560,
+        180
+      ],
+      "id": "e365c48b-34ee-4cf0-8cdd-b99b18d8deca",
+      "name": "Send Consultation Email",
+      "webhookId": "dd55c0db-e3c1-48ba-8652-7827eef5a659",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WnIOg68zhORw4GOO",
+          "name": "ADUDE Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appWzCutTRkTGvc2t",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbls8AXjTeC4XWiC0",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Firebase Database Trigger').item.json.email }}",
+            "Contact Name": "={{ $('Firebase Database Trigger').item.json.name }}",
+            "Phone": "={{ $('Firebase Database Trigger').item.json.phone }}",
+            "Subject": "={{ $('Firebase Database Trigger').item.json.subject }}",
+            "Message": "={{ $('Firebase Database Trigger').item.json.message }}",
+            "Status": "Email Sent"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Contact Name",
+              "displayName": "Contact Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting Title",
+              "displayName": "Meeting Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting Date",
+              "displayName": "Meeting Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting Time",
+              "displayName": "Meeting Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Confirmed",
+                  "value": "Confirmed"
+                },
+                {
+                  "name": "Canceled",
+                  "value": "Canceled"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Email Sent",
+                  "value": "Email Sent"
+                },
+                {
+                  "name": "Follow Up Sent",
+                  "value": "Follow Up Sent"
+                },
+                {
+                  "name": "Won",
+                  "value": "Won"
+                },
+                {
+                  "name": "Lost",
+                  "value": "Lost"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Booking ID",
+              "displayName": "Booking ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cal.com URL",
+              "displayName": "Cal.com URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created Date",
+              "displayName": "Created Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Timezone",
+              "displayName": "Timezone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Language",
+              "displayName": "Language",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting DateTime",
+              "displayName": "Meeting DateTime",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "IST Meeting Time",
+              "displayName": "IST Meeting Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Days Until Meeting",
+              "displayName": "Days Until Meeting",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Meeting Status Summary",
+              "displayName": "Meeting Status Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1360,
+        180
+      ],
+      "id": "22b35cf7-1a8a-42f9-be1d-7d685cb17a73",
+      "name": "Create Lead Record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "y0MqaXSyaHsVbNbh",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1160,
+        180
+      ],
+      "id": "a2064cd2-c77e-404b-9136-8c3478aa0795",
+      "name": "Wait 48 Hours",
+      "webhookId": "ce16aedd-1020-45b6-a7a9-7673316a6b02"
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "base": {
+          "__rl": true,
+          "value": "appWzCutTRkTGvc2t",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbls8AXjTeC4XWiC0",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        180
+      ],
+      "id": "127ece11-1e94-4dc6-a48c-bbd827a827a5",
+      "name": "Check Meeting Status",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "y0MqaXSyaHsVbNbh",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "no-confirmed-meetings",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        180
+      ],
+      "id": "e38f9fcc-c2f7-4f40-9c32-c9d305c1332f",
+      "name": "Check No Meetings"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Firebase Database Trigger').item.json.email }}",
+        "subject": "Don't Miss Out - Your Aviation Career Awaits! 🛩️",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }\n        .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }\n        .cta-button { display: inline-block; background: #1e3c72; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }\n        .urgent { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>⏰ Limited Time Opportunity!</h1>\n            <p>Your Aviation Dreams Are Just One Click Away</p>\n        </div>\n        \n        <div class=\"content\">\n            <h2>Hi {{ $('Firebase Database Trigger').item.json.name || 'Future Pilot' }},</h2>\n            \n            <p>We noticed you haven't scheduled your free consultation yet. We don't want you to miss this opportunity to fast-track your aviation career!</p>\n            \n            <div class=\"urgent\">\n                <h3>🎯 Why Schedule Now?</h3>\n                <ul>\n                    <li><strong>Limited Slots:</strong> Our expert instructors have very limited availability</li>\n                    <li><strong>Seasonal Intake:</strong> Our next program starts soon with limited seats</li>\n                    <li><strong>Early Bird Benefits:</strong> Schedule now to secure special pricing</li>\n                </ul>\n            </div>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"https://cal.com/amansuryavanshi/aviators-training-centre-enrollment-consultation?prefill=true&name={{ encodeURIComponent($('Firebase Database Trigger').item.json.name || '') }}&email={{ encodeURIComponent($('Firebase Database Trigger').item.json.email || '') }}\" class=\"cta-button\">\n                    🚀 Schedule My Free Consultation Now\n                </a>\n            </div>\n            \n            <p><strong>What our recent students say:</strong></p>\n            <blockquote style=\"border-left: 4px solid #1e3c72; padding-left: 15px; margin: 20px 0; font-style: italic;\">\n                \"The consultation was incredibly helpful. Within 30 minutes, I had a clear roadmap to my pilot career and knew exactly what steps to take next!\" - Sarah M., Private Pilot Graduate\n            </blockquote>\n            \n            <p><strong>Still not ready to schedule?</strong> Our team will call you within the next 24 hours to discuss your options personally.</p>\n            \n            <p>Don't let this opportunity fly by! Your aviation career is waiting.</p>\n            \n            <p><strong>Ready for takeoff?</strong><br>\nThe Aviators Training Centre Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p><strong>Aviators Training Centre</strong><br>\n            📧 Email: info@aviatorstrainingcentre.com<br>\n            📞 Phone: +1-XXX-XXX-XXXX</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -540,
+        160
+      ],
+      "id": "5b03cf3b-7257-4ee9-bece-59ddf87ca221",
+      "name": "Send Follow-up Email",
+      "webhookId": "02defb5a-e810-47cc-898f-2f143bcd2024",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WnIOg68zhORw4GOO",
+          "name": "ADUDE Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "events": [
+          "BOOKING_CREATED"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.calTrigger",
+      "typeVersion": 2,
+      "position": [
+        -2020,
+        440
+      ],
+      "id": "4afe6a45-b45b-4290-86e3-6007f4b29569",
+      "name": "Cal.com Booking Trigger",
+      "webhookId": "64c3f715-d3f3-4273-8051-8d32fab07d26",
+      "credentials": {
+        "calApi": {
+          "id": "vMCQjfPGMVC79QYi",
+          "name": "Cal.com Adude"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.attendees[0].email }}",
+        "subject": "🎉 Consultation Confirmed - Welcome to Aviators Training Centre!",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }\n        .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }\n        .meeting-details { background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>✅ Consultation Confirmed!</h1>\n            <p>Your Journey to the Skies Starts Now</p>\n        </div>\n        \n        <div class=\"content\">\n            <h2>Congratulations {{ $json.attendees[0].name }}!</h2>\n            \n            <p>Your consultation has been successfully scheduled. We're excited to discuss your aviation goals and help you chart your course to becoming a professional pilot.</p>\n            \n            <div class=\"meeting-details\">\n                <h3>📅 Meeting Details:</h3>\n                <p><strong>Title:</strong> {{ $json.title }}</p>\n                <p><strong>Date:</strong> {{ $json.startTime.split('T')[0] }}</p>\n                <p><strong>Time:</strong> {{ new Date($json.startTime).toLocaleTimeString('en-US', {timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true}) }} - {{ new Date($json.endTime).toLocaleTimeString('en-US', {timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true}) }} (IST)</p>\n                <p><strong>Meeting Type:</strong> {{ $json.type }}</p>\n                {{ $json.additionalNotes ? '<p><strong>Your Notes:</strong> ' + $json.additionalNotes + '</p>' : '' }}\n            </div>\n            \n            <h3>📋 What to Prepare:</h3>\n            <ul>\n                <li>✈️ Your aviation goals and timeline</li>\n                <li>📚 Questions about training programs</li>\n                <li>💰 Budget considerations</li>\n                <li>📍 Location preferences for training</li>\n                <li>🎓 Your educational background</li>\n            </ul>\n            \n            <p><strong>Need to reschedule?</strong> No problem! Just reply to this email or call us at +1-XXX-XXX-XXXX.</p>\n            \n            <p>We look forward to helping you achieve your aviation dreams!</p>\n            \n            <p><strong>Clear skies ahead!</strong><br>\nThe Aviators Training Centre Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p><strong>Aviators Training Centre</strong><br>\n            📧 Email: info@aviatorstrainingcentre.com<br>\n            📞 Phone: +1-XXX-XXX-XXXX</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1800,
+        440
+      ],
+      "id": "e36026d6-6fe8-4eb4-b30a-bf788f9d647f",
+      "name": "Send Booking Confirmation",
+      "webhookId": "1cea43ef-1d46-492e-83f8-bf2f567bcedd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WnIOg68zhORw4GOO",
+          "name": "ADUDE Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appWzCutTRkTGvc2t",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbls8AXjTeC4XWiC0",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Meeting Date": "={{ $('Cal.com Booking Trigger').item.json.startTime.toDateTime().format('yyyy-MM-dd') }}",
+            "Meeting Time": "={{ new Date($json.startTime).toLocaleTimeString('en-US',{timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit',hour12:true}) }} - {{ new Date($json.endTime).toLocaleTimeString('en-US',{timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit',hour12:true}) }}",
+            "Meeting Title": "={{ $('Cal.com Booking Trigger').item.json.title }}",
+            "Status": "Confirmed",
+            "Booking ID": "={{ $('Cal.com Booking Trigger').item.json.bookingId.toString() }}",
+            "Timezone": "={{ $('Cal.com Booking Trigger').item.json.organizer.timeZone }}",
+            "Cal.com URL": "={{ $('Cal.com Booking Trigger').item.json.bookerUrl }}",
+            "Created Date": "={{ $('Cal.com Booking Trigger').item.json.createdAt.toDateTime().format('yyyy-MM-dd') }} ",
+            "Language": "={{ $('Cal.com Booking Trigger').item.json.attendees[0].language.locale }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Contact Name",
+              "displayName": "Contact Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting Title",
+              "displayName": "Meeting Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting Date",
+              "displayName": "Meeting Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting Time",
+              "displayName": "Meeting Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Confirmed",
+                  "value": "Confirmed"
+                },
+                {
+                  "name": "Canceled",
+                  "value": "Canceled"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Email Sent",
+                  "value": "Email Sent"
+                },
+                {
+                  "name": "Follow Up Sent",
+                  "value": "Follow Up Sent"
+                },
+                {
+                  "name": "Won",
+                  "value": "Won"
+                },
+                {
+                  "name": "Lost",
+                  "value": "Lost"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Booking ID",
+              "displayName": "Booking ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cal.com URL",
+              "displayName": "Cal.com URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created Date",
+              "displayName": "Created Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Timezone",
+              "displayName": "Timezone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Language",
+              "displayName": "Language",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Meeting DateTime",
+              "displayName": "Meeting DateTime",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "IST Meeting Time",
+              "displayName": "IST Meeting Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Days Until Meeting",
+              "displayName": "Days Until Meeting",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Meeting Status Summary",
+              "displayName": "Meeting Status Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1560,
+        440
+      ],
+      "id": "7b97ff46-cc95-45cc-b41a-0bc29bca2ead",
+      "name": "Update Lead with Booking",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "y0MqaXSyaHsVbNbh",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Firebase Database Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Contact Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Contact Data": {
+      "main": [
+        [
+          {
+            "node": "Send Consultation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Consultation Email": {
+      "main": [
+        [
+          {
+            "node": "Create Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Lead Record": {
+      "main": [
+        [
+          {
+            "node": "Wait 48 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 48 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check Meeting Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Meeting Status": {
+      "main": [
+        [
+          {
+            "node": "Check No Meetings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check No Meetings": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cal.com Booking Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send Booking Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Booking Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Update Lead with Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Firebase Database Trigger": [
+      {
+        "email": "amansuryavanshi2002@gmail.com",
+        "message": "I would like to book a demo for the Air Navigation course. Please contact me to schedule a time.",
+        "name": "Bright Surya",
+        "phone": "9847545668",
+        "subject": "Demo Request: Air Navigation",
+        "timestamp": 1750947043420
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2aff0c99a9b9ea9c976d68c5887d32445a6bdc6f59f99592eb5b4c4dbaf3d92e"
+  }
+}

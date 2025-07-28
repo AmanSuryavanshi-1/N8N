@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "21a34bf1-f7e5-8035-b16f-d5ebf63a86a9",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|status",
+              "condition": "equals",
+              "statusValue": "Ready to Post"
+            }
+          ]
+        }
+      },
+      "id": "ae4f1c18-5968-46a3-b071-f701ec41cd67",
+      "name": "Get Notion Content",
+      "type": "n8n-nodes-base.notion"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $json.contentPageName }}",
+        "options": {
+          "filter": {
+            "value": "page",
+            "property": "object"
+          }
+        }
+      },
+      "id": "search-content-page",
+      "name": "Search Content Page",
+      "type": "n8n-nodes-base.notion"
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": "={{ $json.contentPageId }}",
+        "options": {
+          "fetchNestedBlocks": true
+        }
+      },
+      "id": "get-page-blocks",
+      "name": "Get Page Blocks",
+      "type": "n8n-nodes-base.notion"
+    },
+    {
+      "parameters": {
+        "delay": 350
+      },
+      "id": "rate-limit-delay",
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.set"
+    },
+    {
+      "parameters": {
+        "jsCode": "const extractContent = (blocks) => {\n  let fullPageContent = '';\n  const processBlock = (block) => {\n    if (block.paragraph?.rich_text) {\n      fullPageContent += block.paragraph.rich_text.map(t => t.plain_text).join('') + '\\n';\n    } else if (block.heading_1?.rich_text) {\n      fullPageContent += '# ' + block.heading_1.rich_text.map(t => t.plain_text).join('') + '\\n';\n    }\n  };\n  blocks.forEach(processBlock);\n  return fullPageContent;\n};\nconst blocks = $input.all()[0].json.results || [];\nreturn [{json: {fullPageContent: extractContent(blocks)}}];"
+      },
+      "id": "extract-content",
+      "name": "Extract Page Content",
+      "type": "n8n-nodes-base.code"
+    }
+  ],
+  "connections": {
+    "Get Notion Content": {
+      "main": [[{"node": "Search Content Page", "type": "main", "index": 0}]]
+    },
+    "Search Content Page": {
+      "main": [[{"node": "Get Page Blocks", "type": "main", "index": 0}]]
+    },
+    "Get Page Blocks": {
+      "main": [[{"node": "Rate Limit", "type": "main", "index": 0}]]
+    },
+    "Rate Limit": {
+      "main": [[{"node": "Extract Page Content", "type": "main", "index": 0}]]
+    }
+  }
+}
