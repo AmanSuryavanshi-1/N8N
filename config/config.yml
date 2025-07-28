@@ -1,0 +1,6 @@
+tunnel: 2e471211-4395-4e8c-ad8d-33d549ce7e7c
+credentials-file: C:\Users\amans\.cloudflared\2e471211-4395-4e8c-ad8d-33d549ce7e7c.json
+ingress:
+  - hostname: n8n.aviatorstrainingcentre.in
+    service: http://localhost:5678
+  - service: http_status:404
