@@ -1,5 +1,0 @@
-[33md8ed197[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Complete n8n project reorganization - Professional structure with modules, docs, and scripts
-[33m904fd58[m Update .gitignore and remove outdated workflow files
-[33m12dd188[m[33m ([m[1;31morigin/main[m[33m)[m Add Personal_RAG_Agent directory and VS Code configuration files
-[33m568b435[m fix(workflow): adjust node positions in Firebase Database Trigger workflow
-[33m320dfec[m docs: add comprehensive overview of ATC lead capture and follow-up automation
