@@ -2,6 +2,7 @@
 data/
 database.sqlite
 
+.kiro
 # Environment Variables (contains API keys and secrets)
 .env
 config/.env
