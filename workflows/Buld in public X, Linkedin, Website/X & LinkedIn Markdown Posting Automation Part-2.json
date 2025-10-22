@@ -1,0 +1,734 @@
+{
+  "name": "Twitter & LinkedIn Markdown Posting Automation Part-2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "5c81d3f9-746b-4de4-af0d-696b6695b299",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "21a34bf1-f7e5-8035-b16f-d5ebf63a86a9",
+          "mode": "list",
+          "cachedResultName": "Social Content Queue",
+          "cachedResultUrl": "https://www.notion.so/21a34bf1f7e58035b16fd5ebf63a86a9"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|select",
+              "condition": "equals",
+              "selectValue": "Approved"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "14afc0f6-05e6-4943-9cf7-f229904531e3",
+      "name": "Notion – Get Approved",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        96
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "je8hKPK6RzYSk4JA",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.property_twitter_draft_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e7f37516-bf25-4a3e-a4f7-2470a75df506",
+      "name": "If – Has Draft URLs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.property_twitter_draft_url }}",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "id": "42cdab8b-d0e2-4c6d-9c7a-cd2069668e7a",
+      "name": "Download – Twitter MD",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        480,
+        -64
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1hcyFpBqSOMDRDna",
+          "name": "Google Drive Adude"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $json.property_linked_in_draft_url }}"
+        },
+        "options": {}
+      },
+      "id": "a72377bb-4b23-4875-96b9-da365f9a2951",
+      "name": "Download – LinkedIn MD",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        256,
+        240
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1hcyFpBqSOMDRDna",
+          "name": "Google Drive Adude"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper to make bold text for LinkedIn (unicode bold fallback)\nfunction toBold(str) {\n  // Try to return bold unicode, fallback to normal\n  // Or simply wrap with \"**\" if you want\n  return `**${str.trim()}**`;\n}\n\n// Convert Markdown to LinkedIn friendly format\nfunction cleanMarkdown(markdown) {\n  // Remove the \"LinkedIn Draft\" and \"## Posts\" header\n  markdown = markdown.replace(/^# .*(\\n|$)/, '').replace(/^## .*(\\n|$)/, '');\n\n  // Convert headings to BOLD (plain text, not hashes)\n  markdown = markdown.replace(/^### (.+)$/gim, (m, p1) => `\\n${toBold(p1)}\\n`);\n  markdown = markdown.replace(/^## (.+)$/gim, (m, p1) => `\\n${toBold(p1)}\\n`);\n  markdown = markdown.replace(/^# (.+)$/gim, (m, p1) => `\\n${toBold(p1)}\\n`);\n\n  // Convert bold\n  markdown = markdown.replace(/\\*\\*(.*?)\\*\\*/g, (m, p1) => toBold(p1));\n  // Italic to normal text (LinkedIn doesn't do italic)\n  markdown = markdown.replace(/\\*(.*?)\\*/g, (m, p1) => p1);\n\n  // Ordered and unordered lists\n  markdown = markdown.replace(/^\\d+\\.\\s+/gm, '• ');\n  markdown = markdown.replace(/^\\*\\s+/gm, '• ');\n\n  // Remove blockquotes and code blocks (just normal text)\n  markdown = markdown.replace(/^>\\s+/gm, '');\n  markdown = markdown.replace(/`+/g, '');\n\n  // Leave hashtags and links as-is\n  return markdown.trim();\n}\n\n// Split by posts\nconst markdown = items[0].json.data;\nconst posts = markdown.split(/### Post [123]:/).slice(1).map(post => cleanMarkdown(post));\n\nreturn posts.map(postContent => ({ json: { formattedLinkedIn: postContent } }));\n"
+      },
+      "id": "e9f157d6-197f-4bc2-b454-3abeb0e58dac",
+      "name": "Parse LinkedIn Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c92b87b1-5244-427f-b334-c7e27aa066c5",
+      "name": "SplitInBatches – LinkedIn",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "person": "tSx0BZlecQ",
+        "text": "={{ $json.formattedLinkedIn }}",
+        "additionalFields": {}
+      },
+      "id": "83c4d958-9f23-407c-a2d2-c733c77eb0d1",
+      "name": "LinkedIn Post",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "xiSrU49BXf76VXS1",
+          "name": "LinkedIn account aman-suryavanshi-6b0aba347"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// LinkedIn posting result normalizer\nconst { id } = $json;\nreturn [{ json: {...$('SplitInBatches – LinkedIn').first().json, postedId: id, ok: !!id, error: id ? null : 'No post id returned.' }}];"
+      },
+      "id": "0feb982f-a7bc-43ab-98c9-ed838313afd1",
+      "name": "Code – LinkedIn Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        368
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1189987c-b0c8-4356-ac07-f03237ee94d6",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1776,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analytics and error summary\nconst results = $input.all();\nconst twitter = results.filter(r=>r.json.tweetId!==undefined);\nconst linkedin = results.filter(r=>r.json.postedId!==undefined);\nconst twitterOk = twitter.filter(r=>r.json.ok).length;\nconst linkedinOk = linkedin.filter(r=>r.json.ok).length;\nconst errors = twitter.filter(r=>!r.json.ok).map(r=>`T${r.json.threadId+1}-${r.json.tweetIndex+1}: ${r.json.error}`)\n.concat(linkedin.filter(r=>!r.json.ok).map(r=>`L${r.json.postId+1}: ${r.json.error}`));\nreturn [{json:{status:errors.length?'Posted with Errors':'Posted',errorLog:errors.join(' | ')||'All successful',twitterOk,linkedinOk}}];"
+      },
+      "id": "f9c262fb-6dd8-41ba-84a7-3f1097a376b3",
+      "name": "Code – Final Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id || '<USE_NOTION_ROW_ID>' }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "={{ $json.status }}"
+            },
+            {
+              "key": "ErrorLog|rich_text",
+              "richText": true,
+              "text": {
+                "text": [
+                  {
+                    "text": "={{ $json.errorLog }}",
+                    "annotationUi": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9e654417-cf80-4ac7-8584-0f8ab80437ee",
+      "name": "Notion – Write Result",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        -16
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "je8hKPK6RzYSk4JA",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -64
+      ],
+      "id": "80d95fdb-7df4-4697-bd2e-2aac2c0de67d",
+      "name": "Extract from File - Twitter"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        480,
+        240
+      ],
+      "id": "0415d02d-201c-4f8c-82d5-d50d95a9891c",
+      "name": "Extract from File - LinkedIn"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an advanced AI agent responsible for posting high-quality, professional Twitter threads using markdown draft data. Your goal is to ensure maximum reach, views, and engagement by following these strict instructions:\n\n1. **INPUT DATA:** You receive a structured JSON containing multiple Twitter threads in markdown format (each thread = several tweets, e.g. \"1/4\", \"2/4\").\n\n2. **PROFESSIONAL CLEANUP & FORMAT:**\n   - Remove markdown artifacts (headers like ##, **bold**, etc.) except where emphasis improves tweet readability.\n   - Clean hashtags: Place them only at the end of the final tweet in each thread unless required for context.\n   - Start every thread with 🧵 and use thread markers (\"1/4\", \"2/4\", …) clearly.\n   - Ensure clear sentence structure, avoid redundancy, correct grammar/spelling, and use punchy CTAs.\n\n3. **TWEET CHARACTER LIMIT & SPLITTING:**\n   - Strictly limit each tweet to 280 characters maximum. If a draft segment exceeds this, intelligently split it into consecutive tweets and adjust numbering as needed (always keep the sequence clear).\n   - Do not cut-off sentences mid-way. Prefer logical breaking points.\n\n4. **THREAD MANAGEMENT:**\n   - Maintain tweet order (\"1/4\", \"2/4\", etc.) exactly as provided, unless auto-splitting is needed.\n   - Each thread should be posted as an X (Twitter) thread, in the exact stated order.\n\n5. **POSTING LOGIC & ERROR HANDLING:**\n   - On Twitter API errors (rate limit, internal server error, connection lost, forbidden, etc.), automatically retry after waiting for a safe cooldown (default: 1 minute, or as advised by the API response).\n   - Only stop after confirming *all* tweets in *all* threads are successfully posted, in the correct order.\n   - If a post repeatedly fails (after 5 attempts), log the error, skip that tweet, and continue posting the rest.\n\n6. **POSTING OUTPUT FORMAT:**\n   - The AI agent must respond with an array linking each \"tweet index\" to its posting status (success/error + error code/message). Example:\n     `[{\"tweet\": \"Thread 1, Tweet 2/4\", \"status\": \"success\"}, {\"tweet\": \"Thread 2, Tweet 3/4\", \"status\": \"error\", \"error\": \"Rate limited\"}]`\n\n7. **CONTENT OPTIMIZATION:**\n   - Use industry-standard practices to increase engagement and reach: Emphasize value, direct calls to action, and relevant hashtags.\n   - Adjust tone to be authoritative yet approachable, suitable for Twitter professional audiences.\n\n8. **RETRY & LOGGING:**\n   - Keep trying failed tweets up to 5 times, waiting 1 minute between attempts.\n   - After posting, summarize which tweets/threads succeeded, which failed (with error messages).\n\n**Example Workflow:**\n- Receive JSON thread data.\n- Parse and clean each thread.\n- For each tweet, check character limit; split if needed.\n- Post to Twitter via API, handling ordering and errors.\n- Retry failed tweets with cooldown.\n- Return posting report in required output format.\n\n**INPUT:** Provide the agent with the following example JSON (as shown above).\n\n**OUTPUT:** Report on posting status for each tweet, and ensure best Twitter practices.\n\nAttaching the tweets data below:-\n {{ $json.data }}",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        -160
+      ],
+      "id": "3f9f8375-6127-40b8-840b-94ffeba9b629",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        928,
+        64
+      ],
+      "id": "b5753c0c-8c4a-427e-91a9-2b8573d4525e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "4xnUJDzexy0KkJlD",
+          "name": "FREE Google Gemini(PaLM) Api account "
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        64
+      ],
+      "id": "e5eb0752-33c4-415d-9778-0a70c4bc02be",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {
+          "inReplyToStatusId": {
+            "__rl": true,
+            "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Reply_to_Tweet', `You must reply to the previous tweet.`, 'string') }}",
+            "mode": "id"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.twitterTool",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        64
+      ],
+      "id": "6426dcd5-25ea-4f5d-bb8c-1924397c8e8a",
+      "name": "Thread",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "BYiC4uEuElxJTciQ",
+          "name": "X account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        80
+      ],
+      "id": "d057d05c-eca1-48e4-a9bf-f945fa7d3b3b",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "4hBEpDZ0PZBZhJ6v",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f31ece8c-741a-4c12-8198-b0e4bf59a171",
+              "leftValue": "={{ $json.property_linked_in_draft_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        240
+      ],
+      "id": "9ffe78a8-10d6-45a2-b63b-21d516e191c8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"tweet\": \"Thread X, Tweet Y/Z\",\n    \"text\": \"Actual tweet text\",\n    \"in_reply_to\": \"previous_tweet_id or null\"\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1568,
+        64
+      ],
+      "id": "ac02fcee-2fed-434e-a5eb-da8216205289",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.twitterTool",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        64
+      ],
+      "id": "ce25e208-8cf0-4508-82c8-49209f704e7e",
+      "name": "Create First Tweet",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "BYiC4uEuElxJTciQ",
+          "name": "X account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notion – Get Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion – Get Approved": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If – Has Draft URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Has Draft URLs": {
+      "main": [
+        [
+          {
+            "node": "Download – Twitter MD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Download – Twitter MD": {
+      "main": [
+        [
+          {
+            "node": "Extract from File - Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download – LinkedIn MD": {
+      "main": [
+        [
+          {
+            "node": "Extract from File - LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LinkedIn Markdown": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches – LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches – LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Code – LinkedIn Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – LinkedIn Result": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches – LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Code – Final Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Final Analytics": {
+      "main": [
+        [
+          {
+            "node": "Notion – Write Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File - Twitter": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File - LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Parse LinkedIn Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thread": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Download – LinkedIn MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create First Tweet": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3182e7c0-5b68-44a0-83cd-b9d131fe1030",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2aff0c99a9b9ea9c976d68c5887d32445a6bdc6f59f99592eb5b4c4dbaf3d92e"
+  },
+  "id": "svnDVhFuh9TgARt2",
+  "tags": [
+    {
+      "createdAt": "2025-10-18T04:47:47.056Z",
+      "updatedAt": "2025-10-18T04:47:47.056Z",
+      "id": "AtUza9lZgDRuKIfp",
+      "name": "Finalised"
+    },
+    {
+      "createdAt": "2025-10-18T04:48:20.209Z",
+      "updatedAt": "2025-10-18T04:48:20.209Z",
+      "id": "IcBftR9HZ5shEN0w",
+      "name": "Linkedin Automation"
+    },
+    {
+      "createdAt": "2025-06-21T10:35:01.620Z",
+      "updatedAt": "2025-06-21T10:35:01.620Z",
+      "id": "TzJmWRximkI5gQ07",
+      "name": "Twitter Automation"
+    },
+    {
+      "createdAt": "2025-10-18T04:47:51.738Z",
+      "updatedAt": "2025-10-18T04:47:51.738Z",
+      "id": "xM0XhuG867WlyVZX",
+      "name": "BIP"
+    }
+  ]
+}
