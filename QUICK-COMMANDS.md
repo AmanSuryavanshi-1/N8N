@@ -11,7 +11,7 @@ _Essential commands for your reorganized n8n project_
 .\scripts\start-n8n.ps1
 ```
 
-### Start n8n (Manual Method)
+### Start n8n (Manual Method) - AS
 
 ```powershell
 # Navigate to config directory first
@@ -21,7 +21,7 @@ docker-compose up -d
 
 ```
 
-### Start Cloudflare Tunnel
+### Start Cloudflare Tunnel - AS
 
 ```powershell
 # Option 1: Use the script
