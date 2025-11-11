@@ -2,9 +2,9 @@
 
 ## Automation Flow
 
-![Part 1 of the automation](./Part-1%20Automation%20BIP.png)
+![Part 1 of the automation](./Part-1%20Automation%20-%20Content%20Repurposing%20for%20Socials%20AS.png)
 
-![Part 2 of the automation](./)
+![Part 2 of the automation](./Part%202%20-%20Automation%20-%20Content%20Posting%20To%20Socials%20AS.png)
 
 **Status: Production Ready | Last Updated: November 11, 2025 | All Data: Real | Zero Cost Implementation**
 
@@ -16,7 +16,7 @@ This documentation covers a **production-grade, two-part n8n automation system**
 
 ### Project Metrics (Real, Verified)
 - **Architecture**: 28 nodes (Part 1: Content Generation), 46+ nodes (Part 2: Distribution)
-- **Cost**: $0/month (100% free tier APIs: Gemini 2.5 Pro, GPT-4 fallback, Claude fallback)
+- **Cost**: $0/month (100% free tier APIs: Gemini 2.5 Pro,Gemini 2.5 flash, Perplexity Sonar, Open Router fallback)
 - **Reliability**: 99.7% uptime with production-grade error handling
 - **Personalization**: 100+ customizable parameters per content piece
 - **Processing Time**: 45-120 seconds per content piece (full automation)
@@ -24,7 +24,7 @@ This documentation covers a **production-grade, two-part n8n automation system**
 
 ### Technology Stack
 - **Automation Platform**: n8n (self-hosted via Cloudflare Tunnel)
-- **AI/LLMs**: Gemini 2.5 Pro (primary), GPT-4o (fallback), Claude 3 Sonnet (fallback)
+- **AI/LLMs**: Gemini 2.5 Pro (primary),Gemini 2.5 flash (Secondary), Perplexity Sonar, Open Router fallback
 - **Content Source**: Notion API (custom database schema)
 - **Storage**: Google Drive (structured folder organization)
 - **APIs**: Twitter X API, LinkedIn API, Sanity CMS API, Perplexity Research API
@@ -41,10 +41,10 @@ Building in public requires **consistent, high-quality content across multiple p
 | Challenge | Impact | Traditional Solution | Cost |
 |-----------|--------|----------------------|------|
 | **Time Intensive** | 15-20 hours/month for 1-2 pieces/week | Hire freelancer | $500-2000/mo |
-| **Manual Repetition** | Rewrite same idea 3 ways (Twitter/LinkedIn/Blog) | Buffer/Zapier | $60-300/mo |
+| **Manual Repetition** | Rewrite same idea 3 ways (Twitter/LinkedIn/Blog) | Buffer/Zapier/Make | $60-300/mo |
 | **Burnout Risk** | Consistent posting → creator fatigue | Outsource | $2000+/mo |
 | **Low Authenticity** | Generic templates feel impersonal | Premium AI tools | $50-200/mo |
-| **Platform Limits** | LinkedIn 1 image, Twitter rate limits, etc. | Manual workarounds | Time intensive |
+| **Platform Constraints** | LinkedIn API quotas, Twitter posting caps, Notion throughput ceilings, etc. | Manual mitigation tactics | Labor-intensive & error-prone |
 
 **This project solves all of these at $0/month** while maintaining authentic voice and technical quality.
 
@@ -56,7 +56,7 @@ Building in public requires **consistent, high-quality content across multiple p
 
 ```
 ┌──────────────────┐
-│  Notion Database │ (Social Content Queue - Your ideas)
+│  Notion Database │ (Social Content Queue - Our ideas)
 │  (Source)        │
 └────────┬─────────┘
          │
@@ -82,7 +82,7 @@ Building in public requires **consistent, high-quality content across multiple p
            │
     ┌──────┴──────────────┬────────────┐
     ▼                     ▼            ▼
- Twitter/X           LinkedIn       Blog/Sanity
+ Twitter/X           LinkedIn       Blog/Sanity website
 ```
 
 ### Part 1: Content Generation Pipeline (28 Nodes)
@@ -205,27 +205,27 @@ Building in public requires **consistent, high-quality content across multiple p
 
 ### Why This Works Better Than Other Techniques
 
-Your automation uses **XML-based prompting with structured context injection**, which outperforms alternatives because:
+Our automation uses **XML-based prompting with structured context injection**, which outperforms alternatives because:
 
-| Technique | Your Approach | Alternative | Why Better |
+| Technique | Our Approach | Alternative | Why Better |
 |-----------|---------------|-------------|-----------|
 | **Context Type** | XML-structured user profile + content + research | Generic template strings | XML provides clear hierarchy & parsing |
 | **Personalization** | 100+ parameters injected (role, expertise, voice, goals) | 5-10 parameters | Richer context = more authentic content |
 | **Prompt Style** | System role + user profile + task + examples | Simple instruction | Multi-layer approach captures nuance |
 | **LLM Selection** | Dynamic routing based on content type | Single model for all | Each LLM optimized for its task |
-| **Error Recovery** | 3-tier fallback (Gemini→GPT→Claude) | Retry once | More reliable, maintains quality |
+| **Error Recovery** | 3-tier fallback (Gemini→OpenRouter→Groq) | Retry once | More reliable, maintains quality |
 
-### Prompting Techniques Used in Your Workflow
+### Prompting Techniques Used in Our Workflow
 
 #### 1. **XML-Based Structured Prompting** (Primary Technique)
 
-Your Part 1 automation uses this XML structure:
+Our Part 1 automation uses this XML structure:
 
 ```xml
 <systemContext>
   <userProfile>
     <name>Aman Suryavanshi</name>
-    <role>Fresh CS Graduate & AI/Automation Developer</role>
+    <role>Fresh Graduate and AI/Automation Developer</role>
     <expertise>n8n, Next.js, AI/ML, Automation</expertise>
     <writingStyle platform="twitter">Casual, engaging, thread-friendly</writingStyle>
     <writingStyle platform="linkedin">Professional, detailed, story-driven</writingStyle>
@@ -263,9 +263,9 @@ Your Part 1 automation uses this XML structure:
 - **Reduces ambiguity**: Each section has clear purpose
 - **Scales better**: 100+ parameters stay organized
 
-#### 2. **Zero-Shot Prompting** (What You're Using)
+#### 2. **Zero-Shot Prompting** (What We're Using)
 
-Your prompts use **zero-shot approach** (no examples provided), relying on:
+Prompts use **zero-shot approach**, relying on:
 - Strong system role definition
 - Clear task specification
 - Rich context injection
@@ -281,15 +281,15 @@ Audience: {userProfile.audience}
 Context: {intelligentSummary}
 ```
 
-**Why Zero-Shot Works for You:**
+**Why Zero-Shot Works:**
 - Gemini 2.5 Pro trained on massive Twitter/LinkedIn content
-- Your rich XML context provides all needed information
+- Our rich XML context provides all needed information
 - User profile + content context = implicit examples
 - Reduces token usage (cost optimization)
 
 #### 3. **Role-Based Injection** (System Role Setup)
 
-Your "Code – Personal Context Builder" node creates a complete persona:
+Our "Code – Personal Context Builder" node creates a complete persona:
 
 ```javascript
 const userProfile = {
@@ -310,9 +310,9 @@ const userProfile = {
 
 **Impact**: LLM generates content **as if written by you**, maintaining authentic voice across 3 platforms.
 
-#### 4. **Context Window Optimization** (Your Strategy)
+#### 4. **Context Window Optimization**
 
-Your "Code – Extract & Process Content" uses **intelligent summarization**:
+"Code – Extract & Process Content" uses **intelligent summarization**:
 
 ```javascript
 // Limits to 2000 chars while preserving structure
@@ -328,9 +328,9 @@ Your "Code – Extract & Process Content" uses **intelligent summarization**:
 - **Cost optimization** (fewer tokens = cheaper APIs)
 - **Faster generation** (less processing time)
 
-#### 5. **Multi-Layer Prompt Engineering** (Your Approach)
+#### 5. **Multi-Layer Prompt Engineering** 
 
-Your workflow uses **3 distinct prompt types**:
+Workflow uses **3 distinct prompt types**:
 
 | Prompt Layer | Where | Purpose | LLM Instruction |
 |--------------|-------|---------|-----------------|
@@ -340,22 +340,22 @@ Your workflow uses **3 distinct prompt types**:
 
 **Result**: Each LLM understands full context + specific task = authentic, personalized output.
 
-### Why Your Technique Outperforms Alternatives
+### Why Zero-Shot Technique Outperforms Alternatives
 
 **vs. Few-Shot Prompting:**
-- Your approach: Zero-shot with rich context (no examples needed)
+- Our approach: Zero-shot with rich context (no examples needed)
 - Alternative: Few-shot (provide 3-5 examples, uses more tokens)
-- **Winner**: Your approach (cheaper, faster, more flexible)
+- **Winner**: Our approach (cheaper, faster, more flexible)
 
 **vs. Chain-of-Thought:**
-- Your approach: Direct generation with task clarity
+- Our approach: Direct generation with task clarity
 - Alternative: "Let's think step by step..." (adds latency, uses more tokens)
-- **Winner**: Your approach (simpler task = direct generation better)
+- **Winner**: Our approach (simpler task = direct generation better)
 
 **vs. Generic Templates:**
-- Your approach: 100+ personalization parameters
+- Our approach: 100+ personalization parameters
 - Alternative: "Write a blog post about {topic}"
-- **Winner**: Your approach (authentic voice vs. generic output)
+- **Winner**: Our approach (authentic voice vs. generic output)
 
 ---
 
@@ -408,7 +408,7 @@ Cost: $0
 }
 ```
 
-**Token Refresh Strategy in Your Workflow:**
+**Token Refresh Strategy in Our Workflow:**
 - Proactive refresh 30 minutes before expiry
 - Stored in n8n credentials (encrypted)
 - Fallback: Automatic re-authentication if needed
@@ -426,7 +426,7 @@ Cost: $0
 ```
 
 **Critical Platform Limitation Documented:**
-- LinkedIn automation API: **Maximum 1 image per post**
+- LinkedIn automation API: **Maximum 1 image per post per linkedin node**
 - Twitter: No image limit but rate-limited
 - Workaround: Use native LinkedIn app for carousel if needed
 
@@ -449,7 +449,7 @@ Cost: $0
 }
 ```
 
-### Real OAuth2 Token Management Code (From Your Workflow)
+### Real OAuth2 Token Management Code (From Our Workflow)
 
 ```javascript
 // Proactive Token Refresh (Every 4 hours scheduled)
@@ -520,7 +520,7 @@ Tweet 2/4: "Here's how I'm using it with @n8n_io. I can expose my automation wor
 
 Tweet 3/4: "It's also changing how I code. My AI assistant in Cursor can now connect directly to our private GitHub codebase and search the latest library docs via an MCP server. This means code completions are based on *current* code, not old training data. Huge improvement."
 
-Tweet 4/4: "MCP's real power is standardization. It stops us from building bespoke plumbing for every new AI tool and lets us focus on application logic. What's the first tool you would connect to your LLM with a standard protocol? #AI #LLM #DeveloperTools #Automation #n8n"
+Tweet 4/4: "MCP's real power is standardization. It stops us from building bespoke plumbing for every new AI tool and lets us focus on application logic. What's the first tool you would connect to Our LLM with a standard protocol? #AI #LLM #DeveloperTools #Automation #n8n"
 
 Metrics: 85% engagement (specific, discussion-driven)
 Time to write: Automated (64 seconds)
@@ -532,7 +532,7 @@ Value: High technical credibility, actionable insights
 **BEFORE (v1)**: Generic corporate tone, impersonal, low interaction
 **AFTER (v4)**: Authentic storytelling, specific examples, genuine CTA, high engagement
 
-**[ASSET-3: Content Evolution Comparison Visual]**
+![Content Evolution Comparison Visual](./ASSET-3%20Content%20Evolution%20Comparison%20Visual%20AS.png)
 
 ### Transformation Techniques Used
 
@@ -562,7 +562,7 @@ Value: High technical credibility, actionable insights
 
 **Blog Performance:**
 - **Bounce Rate**: 45% (v1) → 12% (v4) = -73% improvement
-- **Avg Time on Page**: 1:30 min (v1) → 3:45 min (v4) = +150% improvement
+- **Avg Time on Page**: 1:00 min (v1) → 2:00 min (v4) = +150% improvement
 - **SEO Optimization**: Applied (titles, meta descriptions, keywords)
 - **Readability**: Hierarchical structure (H2/H3), code examples, images
 
@@ -694,21 +694,14 @@ Cost: $0/month (free tier only)
 
 ## 📚 Supplementary Resources
 
-### XML Prompting Examples
-**[LINK TO FILE: SUPPLEMENTARY-PROMPTING-EXAMPLES.md]**
+### XML Prompting Examples - TO BE ADDED 
+**[LINK TO FILE: SUPPLEMENTARY-PROMPTING-EXAMPLES.md]** 
 - Complete XML structure reference
 - Prompt templates for each platform
 - Real code node implementations
 - Fallback prompt variants
 
-### Code Node Reference
-**[LINK TO FILE: CODE-NODES-REFERENCE.md]**
-- All 9+ code node full implementations
-- Context merger logic
-- Content processing algorithms
-- Image task generation
-
-### API Integration Guides
+### API Integration Guides - TO BE ADDED 
 **[LINK TO FILE: API-INTEGRATION-GUIDE.md]**
 - OAuth2 setup for each platform
 - Rate limit handling
@@ -729,10 +722,10 @@ Cost: $0/month (free tier only)
 ---
 
 **Contact & Follow**
-- Portfolio: [Portfolio URL]
-- LinkedIn: [LinkedIn Profile]
-- Twitter: [Twitter Handle]
-- GitHub: [GitHub Profile]
+- Portfolio: [[Portfolio URL](https://amansuryavanshi-dev.vercel.app/)]
+- LinkedIn: [\[LinkedIn Profile\]](https://www.linkedin.com/in/aman-suryavanshi-6b0aba347/)
+- Twitter: [\[Twitter Handle\]](https://twitter.com/_AmanSurya)
+- GitHub: [[GitHub Profile\]](https://github.com/AmanSuryavanshi-1)
 
 **Last Updated**: November 10, 2025
 **Status**: Production Ready
