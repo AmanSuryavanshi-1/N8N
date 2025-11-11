@@ -1,7 +1,7 @@
 # n8n Data Directory (contains SQLite database and sensitive data)
 data/
 database.sqlite
-
+temp.md
 .kiro
 # Environment Variables (contains API keys and secrets)
 .env

@@ -2,9 +2,9 @@
 
 ## Automation Flow
 
-![Part 1 of the automation](./Part-1%20Full%20Automation.png)
+![Part 1 of the automation](./Part-1%20Automation%20BIP.png)
 
-![Part 2 of the automation](./Part-2%20Full%20Automation.png)
+![Part 2 of the automation](./)
 
 **Status: Production Ready | Last Updated: November 11, 2025 | All Data: Real | Zero Cost Implementation**
 
@@ -133,6 +133,8 @@ Building in public requires **consistent, high-quality content across multiple p
 
 **[ASSET-1: Part 1 Workflow Canvas Annotation Screenshot]**
 
+![Part 1 of the automation](./Part-1%20Automation%20-%20Content%20Repurposing%20for%20Socials%20AS.png)
+
 ---
 
 ### Part 2: Distribution Pipeline (46+ Nodes)
@@ -162,37 +164,40 @@ Building in public requires **consistent, high-quality content across multiple p
    - Detect needed vs. available images
    - Execute hierarchy logic
 
-6. **Image Download & Processing** (6+ nodes)
+6. **Image Download & Processing** (2 nodes)
    - Prepare downloads list
    - Batch download images
-   - Optimization/resizing
 
-7. **Twitter Publishing** (8 nodes with Error Handling)
+7. **Arrange all the Drafts & the images if any in proper format** (1 node)
+   - Set - All Data Ready
+
+8. **Blog Publishing** (6 nodes)
+   - Format for Sanity CMS structure
+   - API publishing with metadata
+   - Extract blog URL
+   - Image embedding with alt text
+
+9. **LinkedIn Publishing** (8 nodes with Error Handling)
+   - Format for LinkedIn (1 image only)
+   - OAuth2 authenticated posting
+   - Extract post URL
+   - Timeout/rate limit recovery
+
+10. **Twitter Publishing** (12 nodes with Error Handling)
    - Format Twitter thread (4 tweets max)
    - OAuth2 authenticated posting
    - Extract tweet IDs
    - Build thread structure
    - Exponential backoff retry logic
 
-8. **LinkedIn Publishing** (8 nodes with Error Handling)
-   - Format for LinkedIn (1 image only)
-   - OAuth2 authenticated posting
-   - Extract post URL
-   - Timeout/rate limit recovery
-
-9. **Blog Publishing** (6 nodes)
-   - Format for Sanity CMS structure
-   - API publishing with metadata
-   - Extract blog URL
-   - Image embedding with alt text
-
-10. **Status Tracking & Completion** (6 nodes)
+11. **Status Tracking & Completion** (2 nodes)
     - Update Notion with all platform links
     - Set status to "Posted"
     - Log execution metadata
-    - Slack notification
 
 **[ASSET-2: Part 2 Workflow Canvas Annotation Screenshot]**
+
+![Part 2 of the automation](./Part%202%20-%20Automation%20-%20Content%20Posting%20To%20Socials%20AS.png)
 
 ---
 
