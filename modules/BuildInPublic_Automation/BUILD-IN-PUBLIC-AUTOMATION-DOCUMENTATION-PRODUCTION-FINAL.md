@@ -2,9 +2,9 @@
 
 ## Automation Flow
 
-![Part 1 of the automation](.\Part-1 Full Automation.png)
+![Part 1 of the automation](./Part-1%20Full%20Automation.png)
 
-![Part 2 of the automation](.\Part-2 Full Automation.png)
+![Part 2 of the automation](./Part-2%20Full%20Automation.png)
 
 **Status: Production Ready | Last Updated: November 11, 2025 | All Data: Real | Zero Cost Implementation**
 
